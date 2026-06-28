@@ -1,0 +1,30 @@
+<!-- filepath: coffee-app/mini-program/pages/order-list/order-list.wxml -->
+<view class="page-list">
+  <view wx:if="{{loading && orders.length === 0}}" class="empty">
+    <text>加载中...</text>
+  </view>
+
+  <view wx:elif="{{orders.length === 0}}" class="empty">
+    <text class="empty-icon">📋</text>
+    <text>暂无订单</text>
+  </view>
+
+  <view wx:else class="order-list">
+    <view
+      wx:for="{{orders}}"
+      wx:key="id"
+      class="order-card"
+      data-id="{{item.id}}"
+      bindtap="viewDetail"
+    >
+      <view class="order-header">
+        <view class="pickup-number">{{item.pickup_number}}</view>
+        <view class="{{item.statusClass}}">{{item.statusLabel}}</view>
+      </view>
+      <view class="order-meta">
+        <text class="time">{{item.dateText}} {{item.timeText}}</text>
+        <text class="price total">{{item.total_amount}}</text>
+      </view>
+    </view>
+  </view>
+</view>

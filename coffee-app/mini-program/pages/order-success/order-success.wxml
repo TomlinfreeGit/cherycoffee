@@ -1,0 +1,62 @@
+<!-- filepath: coffee-app/mini-program/pages/order-success/order-success.wxml -->
+<view class="page-success" wx:if="{{order}}">
+  <view class="success-icon">✓</view>
+  <view class="success-title">下单成功</view>
+  <view class="success-subtitle">请凭以下取餐号到店取餐</view>
+
+  <view class="pickup-card">
+    <view class="pickup-label">取餐号</view>
+    <view class="pickup-number">{{order.pickup_number}}</view>
+    <view class="status-badge {{statusClass}}">{{statusLabel}}</view>
+  </view>
+
+  <view class="time-card" wx:if="{{timeText}}">
+    <text class="time-icon">⏱</text>
+    <text>预计等待时间 {{timeText}}</text>
+  </view>
+
+  <view class="customer-card" wx:if="{{order.customer_name}}">
+    <view class="customer-row">
+      <text class="customer-label">取餐人</text>
+      <text class="customer-value">{{order.customer_name}}</text>
+    </view>
+    <view class="customer-row" wx:if="{{order.customer_phone}}">
+      <text class="customer-label">联系电话</text>
+      <text class="customer-value">{{order.customer_phone}}</text>
+    </view>
+  </view>
+
+  <view class="order-items card">
+    <view class="items-title">订单详情</view>
+    <view class="item-row" wx:for="{{order.items}}" wx:key="id">
+      <view class="item-thumb">
+        <image
+          wx:if="{{item.imageUrl}}"
+          src="{{item.imageUrl}}"
+          class="item-img"
+          mode="aspectFill"
+          binderror="onImageError"
+          data-id="{{item.id}}"
+        />
+        <text wx:else class="item-emoji">{{item.emoji}}</text>
+      </view>
+      <view class="item-name">{{item.product_name}} <text class="item-qty">x{{item.quantity}}</text></view>
+      <view class="item-price price">{{item.subtotal}}</view>
+    </view>
+    <view class="item-row total-row">
+      <view>合计</view>
+      <view class="price total-price">{{order.total_amount}}</view>
+    </view>
+  </view>
+
+  <view class="bottom-bar-placeholder"></view>
+
+  <view class="bottom-bar">
+    <button class="btn" bindtap="backToMenu">返回菜单</button>
+    <button class="btn btn-primary" bindtap="goToList">查看订单</button>
+  </view>
+</view>
+
+<view class="empty" wx:else>
+  <text>加载中...</text>
+</view>

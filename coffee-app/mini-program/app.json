@@ -1,0 +1,44 @@
+{
+  "pages": [
+    "pages/menu/menu",
+    "pages/cart/cart",
+    "pages/order-success/order-success",
+    "pages/order-detail/order-detail",
+    "pages/order-list/order-list"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#6f4e37",
+    "navigationBarTitleText": "咖啡点单",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f7f5f2"
+  },
+  "tabBar": {
+    "color": "#8a7f72",
+    "selectedColor": "#6f4e37",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/menu/menu",
+        "text": "菜单",
+        "iconPath": "images/menu.png",
+        "selectedIconPath": "images/menu-active.png"
+      },
+      {
+        "pagePath": "pages/cart/cart",
+        "text": "购物车",
+        "iconPath": "images/cart.png",
+        "selectedIconPath": "images/cart-active.png"
+      },
+      {
+        "pagePath": "pages/order-list/order-list",
+        "text": "我的订单",
+        "iconPath": "images/orders.png",
+        "selectedIconPath": "images/orders-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

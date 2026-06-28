@@ -1,0 +1,27 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "Coffee shop ordering API server",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test:api": "node test-api.js",
+    "test:e2e": "node test-e2e.js",
+    "test:auth": "node test-auth.js",
+    "test:wechat": "node test-wechat.js",
+    "test:upload": "node test-upload.js",
+    "test:customer": "node test-customer.js",
+    "test": "node test-api.js && node test-e2e.js && node test-auth.js && node test-wechat.js && node test-upload.js && node test-customer.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "multer": "^2.2.0"
+  }
+}

@@ -1,0 +1,92 @@
+<!-- filepath: coffee-app/mini-program/pages/cart/cart.wxml -->
+<view class="page-cart">
+  <block wx:if="{{cart.length === 0}}">
+    <view class="empty">
+      <text class="empty-icon">🛒</text>
+      <view>购物车空空如也</view>
+      <view style="margin-top: 20rpx;">
+        <button class="btn btn-primary" bindtap="goToMenu">去点单</button>
+      </view>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="cart-list">
+      <view class="cart-item" wx:for="{{cart}}" wx:key="product_id">
+        <view class="cart-item-thumb">
+          <image
+            wx:if="{{item.imageUrl}}"
+            src="{{item.imageUrl}}"
+            class="cart-item-img"
+            mode="aspectFill"
+            binderror="onImageError"
+            data-id="{{item.product_id}}"
+          />
+          <text wx:else class="cart-item-emoji">☕</text>
+        </view>
+        <view class="cart-item-main">
+          <view class="cart-item-name">{{item.product_name}}</view>
+          <view class="cart-item-price price">{{item.price}}</view>
+        </view>
+        <view class="cart-item-actions">
+          <view class="qty-btn" data-id="{{item.product_id}}" bindtap="decrease">−</view>
+          <view class="qty-value">{{item.quantity}}</view>
+          <view class="qty-btn" data-id="{{item.product_id}}" bindtap="increase">+</view>
+          <view class="delete-btn" data-id="{{item.product_id}}" bindtap="deleteItem">删除</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="card customer-card">
+      <view class="customer-title">
+        <text>取餐人信息</text>
+        <text wx:if="{{savedProfile}}" class="customer-hint">已记住上次信息</text>
+      </view>
+      <view class="form-group">
+        <view class="form-label">姓名</view>
+        <input
+          class="form-input"
+          type="text"
+          placeholder="请输入您的姓名"
+          value="{{customerName}}"
+          bindinput="onNameInput"
+          maxlength="30"
+        />
+      </view>
+      <view class="form-group">
+        <view class="form-label">手机号</view>
+        <input
+          class="form-input"
+          type="number"
+          placeholder="11 位手机号，便于到店联系"
+          value="{{customerPhone}}"
+          bindinput="onPhoneInput"
+          maxlength="11"
+        />
+      </view>
+    </view>
+
+    <view class="card note-card">
+      <view class="note-label">备注（可选）</view>
+      <textarea
+        class="note-input"
+        placeholder="例如：少冰、不要糖"
+        value="{{note}}"
+        bindinput="onNoteInput"
+        maxlength="100"
+      />
+    </view>
+
+    <view class="bottom-bar-placeholder"></view>
+
+    <view class="bottom-bar">
+      <view class="summary">合计</view>
+      <view class="total price">{{total}}</view>
+      <button
+        class="btn btn-primary"
+        bindtap="submit"
+        disabled="{{submitting}}"
+      >{{submitting ? '提交中...' : '提交订单'}}</button>
+    </view>
+  </block>
+</view>

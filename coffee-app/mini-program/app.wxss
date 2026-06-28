@@ -1,0 +1,162 @@
+/* filepath: coffee-app/mini-program/app.wxss */
+/* 全局样式 - 整个小程序通用 */
+
+page {
+  --primary: #6f4e37;
+  --primary-dark: #5a3f2c;
+  --accent: #d4a373;
+  --bg: #f7f5f2;
+  --panel: #ffffff;
+  --border: #e6e1d8;
+  --text: #2a2622;
+  --muted: #8a7f72;
+  --danger: #e74c3c;
+  --success: #4caf50;
+  --warning: #ff9800;
+
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+}
+
+.container {
+  padding: 24rpx;
+}
+
+/* 通用按钮 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx 32rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  border: none;
+  background: var(--panel);
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.btn::after {
+  border: none;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-danger {
+  background: white;
+  color: var(--danger);
+  border: 1rpx solid var(--danger);
+}
+
+.btn-block {
+  display: flex;
+  width: 100%;
+}
+
+.btn-sm {
+  padding: 8rpx 20rpx;
+  font-size: 24rpx;
+}
+
+.btn-disabled,
+.btn[disabled] {
+  opacity: 0.5;
+}
+
+/* 通用卡片 */
+.card {
+  background: var(--panel);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+/* 状态徽章 */
+.badge {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+.badge-pending { background: #f5e9d4; color: #8a6d3b; }
+.badge-paid { background: #d4ebd4; color: #2e7d32; }
+.badge-preparing { background: #cce5ff; color: #1976d2; }
+.badge-ready { background: #ffe0b2; color: #e65100; }
+.badge-completed { background: #e0e0e0; color: #616161; }
+.badge-cancelled { background: #ffe0e0; color: #c62828; }
+.badge-failed { background: #ffcdd2; color: #b71c1c; }
+
+/* 价格 */
+.price {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.price::before {
+  content: '¥';
+  font-size: 0.85em;
+}
+
+/* 空状态 */
+.empty {
+  padding: 120rpx 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty-icon {
+  font-size: 96rpx;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+/* 取餐号大字 */
+.pickup-number {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 0.05em;
+}
+
+/* 浮动底部操作栏 */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--panel);
+  padding: 20rpx 24rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  z-index: 100;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.bottom-bar .summary {
+  flex: 1;
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.bottom-bar .total {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* 占位避免被底栏遮挡 */
+.with-bottom-bar {
+  padding-bottom: 140rpx;
+}

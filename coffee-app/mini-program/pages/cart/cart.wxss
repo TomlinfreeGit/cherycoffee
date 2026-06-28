@@ -1,0 +1,193 @@
+/* filepath: coffee-app/mini-program/pages/cart/cart.wxss */
+.page-cart {
+  min-height: 100vh;
+}
+
+.cart-list {
+  padding: 24rpx;
+}
+
+.cart-item {
+  background: var(--panel);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.cart-item-thumb {
+  width: 120rpx;
+  height: 120rpx;
+  background: var(--bg);
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.cart-item-img {
+  width: 120rpx;
+  height: 120rpx;
+  display: block;
+}
+
+.cart-item-emoji {
+  font-size: 60rpx;
+}
+
+.cart-item-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8rpx;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.cart-item-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  flex: 1;
+  margin-right: 16rpx;
+}
+
+.cart-item-price {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.cart-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.qty-btn {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.qty-btn:active {
+  background: var(--primary);
+  color: white;
+}
+
+.qty-value {
+  min-width: 60rpx;
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.delete-btn {
+  margin-left: auto;
+  padding: 8rpx 16rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.delete-btn:active {
+  color: var(--danger);
+}
+
+.note-card {
+  margin: 0 24rpx 24rpx;
+}
+
+.note-label {
+  font-size: 26rpx;
+  font-weight: 500;
+  margin-bottom: 12rpx;
+}
+
+.note-input {
+  width: 100%;
+  min-height: 100rpx;
+  font-size: 26rpx;
+  padding: 12rpx;
+  background: var(--bg);
+  border-radius: 8rpx;
+  box-sizing: border-box;
+}
+
+/* Customer info card (姓名 + 手机号) */
+.customer-card {
+  margin: 0 24rpx 24rpx;
+}
+
+.customer-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 26rpx;
+  font-weight: 500;
+  margin-bottom: 16rpx;
+}
+
+.customer-hint {
+  font-size: 22rpx;
+  color: var(--success);
+  font-weight: 400;
+}
+
+.form-group {
+  margin-bottom: 16rpx;
+}
+
+.form-label {
+  font-size: 24rpx;
+  color: var(--muted);
+  margin-bottom: 8rpx;
+}
+
+.form-input {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 16rpx;
+  font-size: 28rpx;
+  background: var(--bg);
+  border-radius: 8rpx;
+  box-sizing: border-box;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.bottom-bar-placeholder {
+  height: 140rpx;
+}
+
+.bottom-bar {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.bottom-bar .summary {
+  flex: 1;
+  font-size: 26rpx;
+  color: var(--muted);
+}
+
+.bottom-bar .total {
+  font-size: 36rpx;
+}
+
+.bottom-bar button {
+  margin: 0;
+}

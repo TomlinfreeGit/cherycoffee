@@ -1,0 +1,8 @@
+# filepath: coffee-app/mini-program/.gitignore
+node_modules/
+dist/
+.project.config.json
+.miniprogram/
+.swan/
+*.log
+.DS_Store

@@ -1,0 +1,77 @@
+<!-- filepath: coffee-app/mini-program/pages/menu/menu.wxml -->
+<view class="page-menu">
+  <!-- 分类切换 -->
+  <view class="category-tabs">
+    <view
+      wx:for="{{categories}}"
+      wx:key="key"
+      class="category-tab {{activeCategory === item.key ? 'active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="switchCategory"
+    >
+      {{item.label}}
+    </view>
+  </view>
+
+  <!-- 商品列表 -->
+  <view class="product-list">
+    <block wx:if="{{loading}}">
+      <view class="empty">
+        <text class="empty-icon">⏳</text>
+        <text>加载中...</text>
+      </view>
+    </block>
+    <block wx:elif="{{products.length === 0}}">
+      <view class="empty">
+        <text class="empty-icon">☕</text>
+        <text>暂无商品</text>
+      </view>
+    </block>
+    <block wx:else>
+      <view
+        wx:for="{{products}}"
+        wx:key="id"
+        wx:if="{{item.category === activeCategory}}"
+        class="product-card"
+      >
+        <view class="product-image">
+          <image
+            wx:if="{{item.imageUrl}}"
+            src="{{item.imageUrl}}"
+            class="product-img"
+            mode="aspectFill"
+            binderror="onImageError"
+            data-id="{{item.id}}"
+          />
+          <text wx:else class="product-emoji">{{item.emoji}}</text>
+        </view>
+        <view class="product-info">
+          <view class="product-name">{{item.name}}</view>
+          <view class="product-desc" wx:if="{{item.description}}">{{item.description}}</view>
+          <view class="product-bottom">
+            <view class="product-price price">{{item.price}}</view>
+            <button
+              class="btn btn-primary btn-sm"
+              size="mini"
+              data-id="{{item.id}}"
+              catchtap="addToCart"
+            >
+              + 加入
+            </button>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 浮动购物车栏 -->
+  <view class="bottom-bar" wx:if="{{cartCount > 0}}" bindtap="goToCart">
+    <view class="cart-icon-wrap">
+      <text class="cart-icon">🛒</text>
+      <view class="cart-badge" wx:if="{{cartCount > 0}}">{{cartCount}}</view>
+    </view>
+    <view class="summary">已选 {{cartCount}} 件</view>
+    <view class="total price">{{cartTotal}}</view>
+    <view class="btn btn-primary btn-sm">去结算 →</view>
+  </view>
+</view>

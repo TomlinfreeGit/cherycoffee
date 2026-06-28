@@ -1,0 +1,47 @@
+/* filepath: coffee-app/mini-program/pages/order-list/order-list.wxss */
+.page-list {
+  padding: 24rpx;
+}
+
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.order-card {
+  background: var(--panel);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.order-card:active {
+  background: var(--bg);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.order-header .pickup-number {
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+.order-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.order-meta .total {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--primary);
+}

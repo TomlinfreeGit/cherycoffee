@@ -1,0 +1,63 @@
+<!-- filepath: coffee-app/mini-program/pages/order-detail/order-detail.wxml -->
+<view class="page-detail" wx:if="{{order}}">
+  <view class="pickup-section">
+    <view class="pickup-label">取餐号</view>
+    <view class="pickup-number">{{order.pickup_number}}</view>
+    <view class="{{statusClass}}">{{statusLabel}}</view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">订单信息</view>
+    <view class="info-row">
+      <text class="info-label">下单时间</text>
+      <text>{{dateText}} {{timeText}}</text>
+    </view>
+    <view class="info-row" wx:if="{{order.customer_name}}">
+      <text class="info-label">取餐人</text>
+      <text>{{order.customer_name}}</text>
+    </view>
+    <view class="info-row" wx:if="{{order.customer_phone}}">
+      <text class="info-label">联系电话</text>
+      <text>{{order.customer_phone}}</text>
+    </view>
+    <view class="info-row" wx:if="{{order.customer_note}}">
+      <text class="info-label">备注</text>
+      <text>{{order.customer_note}}</text>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">商品明细</view>
+    <view class="item-row" wx:for="{{order.items}}" wx:key="id">
+      <view class="item-thumb">
+        <image
+          wx:if="{{item.imageUrl}}"
+          src="{{item.imageUrl}}"
+          class="item-img"
+          mode="aspectFill"
+          binderror="onImageError"
+          data-id="{{item.id}}"
+        />
+        <text wx:else class="item-emoji">☕</text>
+      </view>
+      <view class="item-name">{{item.product_name}}</view>
+      <view class="item-meta">
+        <text class="qty">x{{item.quantity}}</text>
+        <text class="price item-price">{{item.subtotal}}</text>
+      </view>
+    </view>
+    <view class="item-row total-row">
+      <text>合计</text>
+      <text class="price total-price">{{order.total_amount}}</text>
+    </view>
+  </view>
+
+  <view class="tip">
+    <text>💡</text>
+    <text>请到店凭取餐号取餐，订单状态更新时会自动刷新</text>
+  </view>
+</view>
+
+<view class="empty" wx:else>
+  <text>加载中...</text>
+</view>

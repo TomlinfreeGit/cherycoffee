@@ -1,0 +1,9 @@
+# filepath: coffee-app/server/.gitignore
+node_modules/
+data/
+uploads/
+*.db
+*.db-shm
+*.db-wal
+.env
+.DS_Store
