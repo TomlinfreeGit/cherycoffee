@@ -458,3 +458,86 @@ tr:hover td {
   font-family: ui-monospace, monospace;
   word-break: break-all;
 }
+
+/* ©¤©¤©¤ Search / chip group (used in UsersPage) ©¤©¤©¤ */
+.search-input {
+  flex: 1;
+  min-width: 200px;
+  max-width: 320px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--panel);
+  color: var(--text);
+  transition: border-color 0.15s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.chip-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ©¤©¤©¤ Modal (used for delete confirm) ©¤©¤©¤ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-title {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal-body {
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.modal-body p {
+  margin: 0 0 8px;
+}
+
+.modal-body ul {
+  margin: 0;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.modal-footer .btn {
+  min-width: 80px;
+}

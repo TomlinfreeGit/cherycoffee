@@ -1,18 +1,35 @@
 // filepath: coffee-app/mini-program/pages/profile/profile.js
 const api = require('../../utils/api.js');
 
+const PHONE_REGEX = /^1[3-9]\d{9}$/;
+
 Page({
   data: {
     nickname: '',
-    avatarUrl: '',
     phoneMasked: '',
     hasPhone: false,
     loading: true,
-    saving: false
+    saving: false,
+    // Manual phone entry fallback
+    manualOpen: false,
+    manualPhone: ''
   },
+
+  // Internal state (not in data)
+  _nicknameTimer: null,
+  _popupHintTimer: null,
+  _phoneCallbackFired: false,
 
   onShow() {
     this.loadProfile();
+  },
+
+  onUnload() {
+    if (this._nicknameTimer) {
+      clearTimeout(this._nicknameTimer);
+      this._nicknameTimer = null;
+      this.flushNickname();
+    }
   },
 
   async loadProfile() {
@@ -21,7 +38,6 @@ Page({
       const res = await api.getUserProfile();
       this.setData({
         nickname: res.data.nickname || '',
-        avatarUrl: res.data.avatar_url || '',
         phoneMasked: res.data.phone_masked || '',
         hasPhone: !!res.data.has_phone,
         loading: false
@@ -32,33 +48,44 @@ Page({
     }
   },
 
-  // 微信 2.30.0+ 的 chooseAvatar 按钮回调
-  onChooseAvatar(e) {
-    const { avatarUrl } = e.detail;
-    if (!avatarUrl) return;
-    this.setData({ avatarUrl });
-    // 立即上传到后端
-    this.saveProfile({ avatar_url: avatarUrl });
-  },
-
-  // 昵称 input 的双向绑定
+  // 昵称 input - 每次输入更新本地状态，600ms 后自动保存
   onNicknameInput(e) {
-    this.setData({ nickname: e.detail.value });
+    const value = e.detail.value;
+    this.setData({ nickname: value });
+
+    if (this._nicknameTimer) clearTimeout(this._nicknameTimer);
+    this._nicknameTimer = setTimeout(() => {
+      this._nicknameTimer = null;
+      const trimmed = (this.data.nickname || '').trim();
+      if (trimmed && trimmed.length <= 30) {
+        this.saveProfile({ nickname: trimmed }, true);
+      }
+    }, 600);
   },
 
-  // 昵称 input blur 时保存
+  // blur 或回车：立即保存
   onNicknameBlur() {
+    if (this._nicknameTimer) {
+      clearTimeout(this._nicknameTimer);
+      this._nicknameTimer = null;
+    }
+    this.flushNickname();
+  },
+
+  flushNickname() {
     const nickname = (this.data.nickname || '').trim();
     if (!nickname) return;
-    this.saveProfile({ nickname });
+    this.saveProfile({ nickname }, false);
   },
 
-  async saveProfile(data) {
+  async saveProfile(data, silent) {
     if (this.data.saving) return;
     this.setData({ saving: true });
     try {
       await api.updateProfile(data);
-      wx.showToast({ title: '已保存', icon: 'success', duration: 1000 });
+      if (!silent) {
+        wx.showToast({ title: '已保存', icon: 'success', duration: 1000 });
+      }
     } catch (e) {
       wx.showToast({ title: e.message || '保存失败', icon: 'none' });
     } finally {
@@ -66,14 +93,52 @@ Page({
     }
   },
 
-  // 微信 getPhoneNumber 按钮回调
+  // ─── 手机号授权 ────────────────────────────────────
+  // 普通 tap 回调：用于在微信不弹授权框时（例如开发工具模拟器），
+  // 800ms 后如果 getPhoneNumber 没触发，自动展开手动输入。
+  onPhoneBtnTap() {
+    if (this._popupHintTimer) clearTimeout(this._popupHintTimer);
+    this._phoneCallbackFired = false;
+    this._popupHintTimer = setTimeout(() => {
+      this._popupHintTimer = null;
+      if (!this.data.hasPhone && !this._phoneCallbackFired) {
+        this.setData({ manualOpen: true });
+        wx.showToast({
+          title: '请使用手动输入',
+          icon: 'none',
+          duration: 2000
+        });
+      }
+    }, 800);
+  },
+
+  // 微信 getPhoneNumber 回调
   onGetPhoneNumber(e) {
-    // 用户拒绝授权时返回 errMsg 含 "fail"
-    if (!e.detail.encryptedData || !e.detail.iv) {
-      wx.showToast({ title: '已取消授权', icon: 'none' });
+    this._phoneCallbackFired = true;
+    if (this._popupHintTimer) {
+      clearTimeout(this._popupHintTimer);
+      this._popupHintTimer = null;
+    }
+
+    const detail = e.detail || {};
+    const isCancel =
+      !detail.encryptedData ||
+      !detail.iv ||
+      /fail|deny|cancel/i.test(detail.errMsg || '');
+
+    if (isCancel) {
+      // 检测是否在开发工具模拟器
+      let isSimulator = false;
+      try {
+        isSimulator = wx.getSystemInfoSync().platform === 'devtools';
+      } catch (_) {}
+      if (isSimulator) {
+        this.setData({ manualOpen: true });
+      }
       return;
     }
-    this.bindPhone(e.detail.encryptedData, e.detail.iv);
+
+    this.bindPhone(detail.encryptedData, detail.iv);
   },
 
   async bindPhone(encryptedData, iv) {
@@ -88,13 +153,19 @@ Page({
       });
     } catch (e) {
       wx.hideLoading();
-      // 常见的错误：session_key 过期（需要重新登录）
       if (/session_key|session-key|re-login|重新登录/i.test(e.message)) {
         wx.showModal({
           title: '需要重新登录',
-          content: '请先退出登录再重新进入小程序',
-          showCancel: false
+          content: '请先退出登录再重新进入小程序后再试；或使用手动输入',
+          confirmText: '手动输入',
+          cancelText: '取消',
+          success: (r) => {
+            if (r.confirm) this.setData({ manualOpen: true });
+          }
         });
+      } else if (/No session_key|USE_REAL_WECHAT_AUTH/i.test(e.message)) {
+        this.setData({ manualOpen: true });
+        wx.showToast({ title: '请使用手动输入', icon: 'none', duration: 2000 });
       } else {
         wx.showModal({
           title: '获取失败',
@@ -105,7 +176,41 @@ Page({
     }
   },
 
-  // 解绑手机号
+  // ─── 手动输入手机号 ───────────────────────────
+  toggleManual() {
+    this.setData({ manualOpen: !this.data.manualOpen });
+  },
+
+  onManualPhoneInput(e) {
+    const value = (e.detail.value || '').replace(/\D/g, '').slice(0, 11);
+    this.setData({ manualPhone: value });
+  },
+
+  async onManualSave() {
+    const phone = (this.data.manualPhone || '').trim();
+    if (!PHONE_REGEX.test(phone)) {
+      wx.showToast({ title: '请输入有效的 11 位手机号', icon: 'none' });
+      return;
+    }
+    if (this.data.saving) return;
+    this.setData({ saving: true });
+    try {
+      const res = await api.setPhonePlain(phone);
+      wx.showToast({ title: '已保存', icon: 'success' });
+      this.setData({
+        hasPhone: true,
+        phoneMasked: res.data.phone_masked,
+        manualOpen: false,
+        manualPhone: ''
+      });
+    } catch (e) {
+      wx.showToast({ title: e.message || '保存失败', icon: 'none' });
+    } finally {
+      this.setData({ saving: false });
+    }
+  },
+
+  // ─── 解绑 ──────────────────────────────────────
   unbindPhone() {
     wx.showModal({
       title: '解绑手机号？',

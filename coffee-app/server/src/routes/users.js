@@ -106,6 +106,47 @@ router.patch('/me', (req, res) => {
   }
 });
 
+// POST /api/users/phone-plain - manually set a phone number (DEV / SIMULATOR only)
+// body: { phone }
+// Disabled in production unless ALLOW_PLAIN_PHONE=true. Useful when the WeChat
+// dev tools simulator doesn't trigger the real getPhoneNumber popup, or when the
+// user has denied the permission and there's no other way to recover the phone.
+router.post('/phone-plain', (req, res) => {
+  const allowPlain =
+    process.env.ALLOW_PLAIN_PHONE === 'true' ||
+    process.env.USE_REAL_WECHAT_AUTH !== 'true'; // default: allowed in mock mode
+  if (!allowPlain) {
+    return res.status(403).json({
+      error: 'Plain phone entry is disabled. Set ALLOW_PLAIN_PHONE=true in .env to enable.'
+    });
+  }
+
+  const { phone } = req.body || {};
+  if (!phone || typeof phone !== 'string') {
+    return res.status(400).json({ error: 'phone is required' });
+  }
+  const trimmed = phone.trim();
+  if (!PHONE_REGEX.test(trimmed)) {
+    return res.status(400).json({ error: '请输入有效的 11 位手机号' });
+  }
+
+  try {
+    getOrCreateUser(req.openid);
+    db.prepare(`
+      UPDATE users
+      SET phone = ?, phone_verified = 0, updated_at = datetime('now', 'localtime')
+      WHERE openid = ?
+    `).run(trimmed, req.openid);
+
+    console.log(`[users] plain phone set for openid=${req.openid.slice(0, 16)}... (unverified)`);
+    const user = db.prepare('SELECT * FROM users WHERE openid = ?').get(req.openid);
+    res.json({ data: serializeUser(user) });
+  } catch (e) {
+    console.error('POST /api/users/phone-plain error:', e);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // POST /api/users/phone - decrypt WeChat phone data
 // body: { encryptedData, iv }
 // Requires session_key in the current session (i.e., user logged in via real WeChat)

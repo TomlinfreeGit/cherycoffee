@@ -59,6 +59,27 @@ export interface Order {
   items?: OrderItem[];
 }
 
+export interface User {
+  openid: string;
+  nickname: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+  has_phone: boolean;
+  phone_verified: boolean;
+  order_count: number;
+  last_order_at: string | null;
+  total_spent?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserListResult {
+  data: User[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export const api = {
   // Products
   listProducts: (params?: { category?: string; availableOnly?: boolean }) => {
@@ -93,5 +114,22 @@ export const api = {
     if (!res.ok) throw new Error('Failed to reveal phone');
     const data = await res.json();
     return data.data.customer_phone;
-  }
+  },
+
+  // Users (merchant management)
+  listUsers: (params?: { search?: string; has_phone?: boolean; limit?: number; offset?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.search) q.set('search', params.search);
+    if (params?.has_phone !== undefined) q.set('has_phone', String(params.has_phone));
+    if (params?.limit !== undefined) q.set('limit', String(params.limit));
+    if (params?.offset !== undefined) q.set('offset', String(params.offset));
+    const qs = q.toString();
+    return request<UserListResult>('GET', `/merchant/users${qs ? `?${qs}` : ''}`);
+  },
+  getUser: (openid: string) => request<{ data: User }>('GET', `/merchant/users/${encodeURIComponent(openid)}`),
+  deleteUser: (openid: string) =>
+    request<{ data: { openid: string; deleted_user: boolean; anonymized_orders: number; deleted_sessions: number } }>(
+      'DELETE',
+      `/merchant/users/${encodeURIComponent(openid)}`
+    )
 };

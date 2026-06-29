@@ -5,27 +5,6 @@
   </block>
 
   <block wx:else>
-    <!-- 头像区域 -->
-    <view class="section">
-      <view class="section-title">头像</view>
-      <view class="avatar-row">
-        <button
-          class="avatar-btn"
-          open-type="chooseAvatar"
-          bindchooseavatar="onChooseAvatar"
-        >
-          <image
-            wx:if="{{avatarUrl}}"
-            class="avatar-img"
-            src="{{avatarUrl}}"
-            mode="aspectFill"
-          />
-          <view wx:else class="avatar-placeholder">选择头像</view>
-        </button>
-        <text class="hint">点击选择微信头像</text>
-      </view>
-    </view>
-
     <!-- 昵称区域 -->
     <view class="section">
       <view class="section-title">昵称</view>
@@ -36,11 +15,12 @@
           value="{{nickname}}"
           bindinput="onNicknameInput"
           bindblur="onNicknameBlur"
+          bindconfirm="onNicknameBlur"
           placeholder="点击输入您的昵称"
           maxlength="30"
         />
       </view>
-      <view class="hint">type="nickname" 会显示微信昵称建议</view>
+      <view class="hint">输入后点空白处自动保存</view>
     </view>
 
     <!-- 手机号区域 -->
@@ -56,14 +36,41 @@
       </block>
 
       <block wx:else>
-        <view class="hint phone-empty">尚未绑定手机号，用于取餐时联系</view>
+        <view class="hint phone-empty">尚未绑定手机号，取餐时无法联系您</view>
+
+        <!-- 主按钮：微信一键授权 -->
         <button
           class="btn btn-primary phone-btn"
           open-type="getPhoneNumber"
           bindgetphonenumber="onGetPhoneNumber"
+          bindtap="onPhoneBtnTap"
         >
-          📱 一键绑定手机号
+          📱 微信一键获取手机号
         </button>
+
+        <!-- 折叠的手动输入（开发 / 模拟器 / 微信拒绝时使用） -->
+        <view class="manual-toggle" bindtap="toggleManual">
+          <text>{{manualOpen ? '收起' : '手动输入手机号'}}</text>
+        </view>
+
+        <block wx:if="{{manualOpen}}">
+          <view class="manual-row">
+            <input
+              type="number"
+              class="manual-input"
+              value="{{manualPhone}}"
+              bindinput="onManualPhoneInput"
+              placeholder="11 位手机号"
+              maxlength="11"
+            />
+            <button
+              class="btn btn-secondary manual-save"
+              bindtap="onManualSave"
+              disabled="{{saving}}"
+            >保存</button>
+          </view>
+          <view class="hint manual-hint">本地开发 / 模拟器使用；生产环境请用微信一键获取</view>
+        </block>
       </block>
     </view>
 

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import LoginPage from './pages/login/LoginPage';
 import ProductsPage from './pages/products/ProductsPage';
 import OrdersPage from './pages/orders/OrdersPage';
+import UsersPage from './pages/users/UsersPage';
 import { auth } from './api/auth';
 import { ToastContainer } from './components/Toast';
 
@@ -34,6 +35,9 @@ function Layout({ children }: { children: React.ReactNode }) {
           </NavLink>
           <NavLink to="/products" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
             商品管理
+          </NavLink>
+          <NavLink to="/users" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+            用户管理
           </NavLink>
           <button onClick={logout} className="btn btn-ghost">退出</button>
         </nav>
@@ -69,6 +73,16 @@ function App() {
             <RequireAuth>
               <Layout>
                 <ProductsPage />
+              </Layout>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <RequireAuth>
+              <Layout>
+                <UsersPage />
               </Layout>
             </RequireAuth>
           }

@@ -209,6 +209,12 @@ module.exports = {
     return request('/users/phone', 'POST', { encryptedData, iv });
   },
 
+  // 手动设置手机号（开发 / 模拟器 / 备用，server 仅在非生产或显式开启时允许）
+  async setPhonePlain(phone) {
+    await ensureLoggedIn();
+    return request('/users/phone-plain', 'POST', { phone });
+  },
+
   // 解绑手机号
   async unbindPhone() {
     await ensureLoggedIn();
