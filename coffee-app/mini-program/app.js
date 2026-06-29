@@ -8,7 +8,7 @@
 // 真机调试前请修改 LAN_API_HOST 为你电脑的局域网 IP（运行 ipconfig 查看），
 // 或在开发者工具中设置"不校验合法域名"并手动指定 API 地址。
 const DEV_API_HOST = 'http://localhost:3000/api';
-const LAN_API_HOST = 'http://192.168.1.29:3000/api';  // ← 真机调试前改这里
+const LAN_API_HOST = 'https://rpi.tomlinfree.dpdns.org/api';  // ← 真机调试前改这里
 
 App({
   globalData: {

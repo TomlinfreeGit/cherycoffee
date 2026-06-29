@@ -8,11 +8,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://rpi.tomlinfree.dpdns.org',
         changeOrigin: true
       },
       '/uploads': {
-        target: 'http://localhost:3000',
+        target: 'https://rpi.tomlinfree.dpdns.org',
         changeOrigin: true
       }
     }

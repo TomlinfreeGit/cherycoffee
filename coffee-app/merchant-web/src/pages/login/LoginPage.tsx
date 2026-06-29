@@ -36,9 +36,6 @@ export default function LoginPage() {
         <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
           登录
         </button>
-        <div style={{ marginTop: 12, fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
-          默认密码：admin123（首次登录后可修改）
-        </div>
       </form>
     </div>
   );
