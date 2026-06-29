@@ -1,6 +1,7 @@
 // filepath: coffee-app/merchant-web/src/pages/products/ProductsPage.tsx
 import { useEffect, useRef, useState } from 'react';
 import { api, Product } from '../../api/client';
+import { API_BASE, resolveImageUrl } from '../../api/config';
 import { showToast } from '../../components/Toast';
 import { formatPrice } from '../../utils/format';
 
@@ -24,15 +25,6 @@ const emptyForm: ProductFormData = {
   image_url: '',
   available: true
 };
-
-// Resolve a possibly-relative URL to an absolute one based on API host
-function resolveImageUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  if (url.startsWith('http') || url.startsWith('data:')) return url;
-  const apiBase = (import.meta as any).env?.VITE_API_BASE || '/api';
-  const origin = apiBase.replace(/\/api\/?$/, '');
-  return origin + url;
-}
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -238,7 +230,7 @@ function ProductFormModal({
       const fd = new FormData();
       fd.append('file', file);
 
-      const apiBase = (import.meta as any).env?.VITE_API_BASE || '/api';
+      const apiBase = API_BASE;
       const MERCHANT_TOKEN = 'merchant-local-token';
       const res = await fetch(`${apiBase}/uploads`, {
         method: 'POST',

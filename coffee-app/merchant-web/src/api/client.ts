@@ -1,5 +1,7 @@
 // filepath: coffee-app/merchant-web/src/api/client.ts
-const BASE = '/api';
+import { API_BASE } from './config';
+
+const BASE = API_BASE;
 
 // Merchant token for local development. In production this should be obtained
 // from a real login flow with proper credential storage.
