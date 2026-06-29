@@ -191,10 +191,13 @@ module.exports = {
   },
 
   // ─── 用户档案 ────────────────────────────────────
-  // 获取当前用户资料（昵称/头像/手机号脱敏）
-  async getUserProfile() {
+  // 获取当前用户资料
+  //   includePhone=true 时，server 会在响应里附加真实手机号（user.phone），
+  //   用于购物车自动填入取餐人信息。默认仅返回脱敏的 phone_masked。
+  async getUserProfile(includePhone = false) {
     await ensureLoggedIn();
-    return request('/users/me', 'GET');
+    const qs = includePhone ? '?include=phone' : '';
+    return request(`/users/me${qs}`, 'GET');
   },
 
   // 更新昵称/头像

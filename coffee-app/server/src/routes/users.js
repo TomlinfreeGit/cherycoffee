@@ -29,24 +29,37 @@ function getOrCreateUser(openid) {
   return user;
 }
 
-function serializeUser(user) {
-  return {
+function serializeUser(user, options = {}) {
+  const { includePhone = false } = options;
+  const out = {
     openid: user.openid,
     nickname: user.nickname || null,
     avatar_url: user.avatar_url || null,
     has_phone: !!user.phone,
     phone_masked: user.phone ? maskPhone(user.phone) : null
   };
+  // Only return the raw phone when the user explicitly opts in via
+  // ?include=phone. Used by the mini-program cart to pre-fill the form
+  // with the real (non-masked) phone so the user doesn't have to retype.
+  if (includePhone) {
+    out.phone = user.phone || null;
+  }
+  return out;
 }
 
 // All routes require login
 router.use(customerAuth);
 
 // GET /api/users/me
+// Query: include=phone  -> also return the user's own raw (unmasked) phone.
+//                          Safe because the user can only read their own record
+//                          (openid is bound to their session).
 router.get('/me', (req, res) => {
   try {
     const user = getOrCreateUser(req.openid);
-    res.json({ data: serializeUser(user) });
+    const include = String(req.query.include || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const includePhone = include.includes('phone');
+    res.json({ data: serializeUser(user, { includePhone }) });
   } catch (e) {
     console.error('GET /api/users/me error:', e);
     res.status(500).json({ error: 'Internal server error' });

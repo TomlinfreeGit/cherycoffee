@@ -69,13 +69,12 @@
               disabled="{{saving}}"
             >保存</button>
           </view>
-          <view class="hint manual-hint">本地开发 / 模拟器使用；生产环境请用微信一键获取</view>
         </block>
       </block>
     </view>
 
     <view class="footer-hint">
-      · 头像、昵称保存到云端，登录后自动恢复<br/>
+      · 昵称保存到云端，登录后自动恢复<br/>
       · 手机号由微信官方授权，仅用于取餐联系<br/>
       · 取餐号会显示在「我的订单」页面
     </view>

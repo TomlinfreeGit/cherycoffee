@@ -43,19 +43,30 @@ Page({
     }
   },
 
-  // Pull the authoritative profile from the server (with the actual decrypted
-  // phone number if the user has bound one). Silently fail if not logged in.
+  // Pull the authoritative profile from the server (with the real phone number
+  // so the cart can auto-fill both 取餐人姓名 and 手机号). Silently fails if
+  // the user isn't logged in.
   async loadServerProfile() {
     try {
-      const res = await api.getUserProfile();
+      const res = await api.getUserProfile(true); // include=phone → real phone
       const profile = res.data;
       this.setData({ serverProfile: profile });
-      // If we have a real server profile and form is empty, fill it in
-      if (profile.nickname && !this.data.customerName) {
-        this.setData({ customerName: profile.nickname });
+
+      // If the form is still empty, auto-fill with the server profile
+      const updates = {};
+      if (!this.data.customerName && profile.nickname) {
+        updates.customerName = profile.nickname;
       }
-      if (profile.phone && !this.data.customerPhone) {
-        this.setData({ customerPhone: profile.phone });
+      if (!this.data.customerPhone) {
+        // Prefer the raw `phone` field; fall back to masked if the server
+        // didn't include it (older client / different auth flow).
+        const realPhone = profile.phone || (profile.phone_masked && profile.phone_masked.includes('*') ? null : profile.phone_masked);
+        if (realPhone && /^1[3-9]\d{9}$/.test(realPhone)) {
+          updates.customerPhone = realPhone;
+        }
+      }
+      if (Object.keys(updates).length > 0) {
+        this.setData(updates);
       }
     } catch (e) {
       // Not logged in or network error - fall back to local profile
