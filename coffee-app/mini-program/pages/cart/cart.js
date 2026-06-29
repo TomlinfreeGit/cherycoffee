@@ -10,73 +10,64 @@ Page({
     customerName: '',
     customerPhone: '',
     submitting: false,
-    savedProfile: null,
-    serverProfile: null
+    // Profile state
+    isLoggedIn: false,
+    hasServerProfile: false,
+    loadingProfile: true
   },
 
   onShow() {
     this.refreshCart();
-    this.restoreProfile();
-    this.loadServerProfile();
+    this.checkLoginAndLoadProfile();
   },
 
-  // Restore name/phone from last order (saved to local storage).
-  // Server profile (from /api/users/me) takes priority since it's authoritative.
-  restoreProfile() {
-    const serverProfile = this.data.serverProfile;
-    if (serverProfile) {
-      if (!this.data.customerName && serverProfile.nickname) {
-        this.setData({ customerName: serverProfile.nickname });
-      }
-      if (!this.data.customerPhone && serverProfile.phone) {
-        this.setData({ customerPhone: serverProfile.phone });
-      }
+  // ─── 取餐人信息：仅从服务器填充，不读本地缓存 ────────────
+  // 用户点击购物车时，若已登录，自动从 /api/users/me 拉取昵称和真实手机号
+  // 并填入表单。若未登录或未绑手机，显示"完善我的资料信息"引导卡片。
+  async checkLoginAndLoadProfile() {
+    this.setData({ loadingProfile: true });
+    const token = wx.getStorageSync('session_token');
+    if (!token) {
+      this.setData({
+        isLoggedIn: false,
+        hasServerProfile: false,
+        loadingProfile: false
+      });
       return;
     }
-    const saved = wx.getStorageSync('customer_profile');
-    if (saved && !this.data.customerName && !this.data.customerPhone) {
-      this.setData({
-        customerName: saved.name || '',
-        customerPhone: saved.phone || '',
-        savedProfile: saved
-      });
-    }
-  },
 
-  // Pull the authoritative profile from the server (with the real phone number
-  // so the cart can auto-fill both 取餐人姓名 and 手机号). Silently fails if
-  // the user isn't logged in.
-  async loadServerProfile() {
+    // 已有 token，验证是否仍有效 + 拉资料
     try {
-      const res = await api.getUserProfile(true); // include=phone → real phone
+      const res = await api.getUserProfile(true); // include=phone → 真实手机号
       const profile = res.data;
-      this.setData({ serverProfile: profile });
+      const updates = {
+        isLoggedIn: true,
+        hasServerProfile: !!(profile.nickname && profile.phone),
+        loadingProfile: false
+      };
 
-      // If the form is still empty, auto-fill with the server profile
-      const updates = {};
+      // 自动填入（仅当表单为空，避免覆盖用户已编辑的内容）
       if (!this.data.customerName && profile.nickname) {
         updates.customerName = profile.nickname;
       }
-      if (!this.data.customerPhone) {
-        // Prefer the raw `phone` field; fall back to masked if the server
-        // didn't include it (older client / different auth flow).
-        const realPhone = profile.phone || (profile.phone_masked && profile.phone_masked.includes('*') ? null : profile.phone_masked);
-        if (realPhone && /^1[3-9]\d{9}$/.test(realPhone)) {
-          updates.customerPhone = realPhone;
-        }
+      if (!this.data.customerPhone && profile.phone && /^1[3-9]\d{9}$/.test(profile.phone)) {
+        updates.customerPhone = profile.phone;
       }
-      if (Object.keys(updates).length > 0) {
-        this.setData(updates);
-      }
+      this.setData(updates);
     } catch (e) {
-      // Not logged in or network error - fall back to local profile
+      // token 可能过期（401 由 api.request 拦截并清掉 storage）
+      this.setData({
+        isLoggedIn: false,
+        hasServerProfile: false,
+        loadingProfile: false
+      });
+      // 不弹错误 —— 静默回退到引导卡片
     }
   },
 
   refreshCart() {
     const cart = app.globalData.cart;
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    // Resolve image URLs
     const cartWithImages = cart.map((item) => ({
       ...item,
       imageUrl: api.resolveImageUrl(item.image_url)
@@ -113,7 +104,6 @@ Page({
     if (idx >= 0) {
       const item = this.data.cart[idx];
       if (item.quantity <= 1) {
-        // 移除
         app.removeFromCart(id);
       } else {
         item.quantity -= 1;
@@ -149,9 +139,13 @@ Page({
   },
 
   onPhoneInput(e) {
-    // Only allow digits, max 11
     const value = (e.detail.value || '').replace(/\D/g, '').slice(0, 11);
     this.setData({ customerPhone: value });
+  },
+
+  // 去我的资料页（未登录或未绑定手机号时引导）
+  goToProfile() {
+    wx.navigateTo({ url: '/pages/profile/profile' });
   },
 
   // 提交订单
@@ -161,7 +155,6 @@ Page({
       return;
     }
 
-    // Validate customer info
     const name = (this.data.customerName || '').trim();
     const phone = this.data.customerPhone || '';
     if (!name) {
@@ -184,7 +177,6 @@ Page({
         quantity: item.quantity
       }));
 
-      // 1. 创建订单 (含顾客信息)
       const orderRes = await api.createOrder(items, {
         customer_note: this.data.note || undefined,
         customer_name: name,
@@ -192,10 +184,7 @@ Page({
       });
       const order = orderRes.data;
 
-      // Save profile for next time
-      wx.setStorageSync('customer_profile', { name, phone });
-
-      // 2. 模拟支付（本地开发环境）
+      // 模拟支付
       const payResult = await api.mockPay(order.id);
       if (!payResult) {
         wx.hideLoading();
@@ -203,12 +192,9 @@ Page({
         return;
       }
 
-      // 3. 清空购物车
       app.clearCart();
-
       wx.hideLoading();
 
-      // 4. 跳转到成功页
       wx.redirectTo({
         url: `/pages/order-success/order-success?id=${order.id}`
       });
@@ -225,9 +211,5 @@ Page({
 
   goToMenu() {
     wx.switchTab({ url: '/pages/menu/menu' });
-  },
-
-  goToProfile() {
-    wx.navigateTo({ url: '/pages/profile/profile' });
   }
 });

@@ -37,38 +37,54 @@
       </view>
     </view>
 
-    <view class="card customer-card">
-      <view class="customer-title">
-        <text>取餐人信息</text>
-        <text wx:if="{{savedProfile}}" class="customer-hint">已记住上次信息</text>
-        <text wx:elif="{{serverProfile && serverProfile.phone}}" class="customer-hint">已从我的资料同步</text>
+    <!-- 取餐人信息 / 引导完善资料 -->
+    <block wx:if="{{loadingProfile}}">
+      <view class="card customer-card">
+        <view class="customer-loading">加载中...</view>
       </view>
-      <view wx:if="{{!serverProfile || !serverProfile.phone}}" class="profile-hint" bindtap="goToProfile">
-        <text>从微信一键获取手机号 ›</text>
+    </block>
+
+    <block wx:elif="{{!isLoggedIn || !hasServerProfile}}">
+      <view class="card prompt-card">
+        <view class="prompt-icon">👤</view>
+        <view class="prompt-title">需要完善取餐人信息</view>
+        <view class="prompt-desc">为了在取餐时联系您，请先在「我的资料」里设置昵称和手机号</view>
+        <button class="btn btn-primary prompt-btn" bindtap="goToProfile">
+          去完善我的资料信息 ›
+        </button>
       </view>
-      <view class="form-group">
-        <view class="form-label">姓名</view>
-        <input
-          class="form-input"
-          type="text"
-          placeholder="请输入您的姓名"
-          value="{{customerName}}"
-          bindinput="onNameInput"
-          maxlength="30"
-        />
+    </block>
+
+    <block wx:else>
+      <view class="card customer-card">
+        <view class="customer-title">
+          <text>取餐人信息</text>
+          <text class="customer-hint">已从我的资料同步</text>
+        </view>
+        <view class="form-group">
+          <view class="form-label">姓名</view>
+          <input
+            class="form-input"
+            type="text"
+            placeholder="请输入您的姓名"
+            value="{{customerName}}"
+            bindinput="onNameInput"
+            maxlength="30"
+          />
+        </view>
+        <view class="form-group">
+          <view class="form-label">手机号</view>
+          <input
+            class="form-input"
+            type="number"
+            placeholder="11 位手机号，便于到店联系"
+            value="{{customerPhone}}"
+            bindinput="onPhoneInput"
+            maxlength="11"
+          />
+        </view>
       </view>
-      <view class="form-group">
-        <view class="form-label">手机号</view>
-        <input
-          class="form-input"
-          type="number"
-          placeholder="11 位手机号，便于到店联系"
-          value="{{customerPhone}}"
-          bindinput="onPhoneInput"
-          maxlength="11"
-        />
-      </view>
-    </view>
+    </block>
 
     <view class="card note-card">
       <view class="note-label">备注（可选）</view>
