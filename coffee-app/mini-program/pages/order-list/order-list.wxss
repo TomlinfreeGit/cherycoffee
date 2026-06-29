@@ -3,6 +3,49 @@
   padding: 24rpx;
 }
 
+.profile-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel);
+  border-radius: 16rpx;
+  padding: 24rpx 28rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.profile-card:active {
+  background: var(--bg);
+}
+
+.profile-card-left {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.profile-card-icon {
+  font-size: 48rpx;
+}
+
+.profile-card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.profile-card-subtitle {
+  font-size: 22rpx;
+  color: var(--muted);
+  margin-top: 4rpx;
+}
+
+.profile-card-arrow {
+  font-size: 40rpx;
+  color: var(--muted);
+  font-weight: 300;
+}
+
 .order-list {
   display: flex;
   flex-direction: column;

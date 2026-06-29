@@ -10,16 +10,29 @@ Page({
     customerName: '',
     customerPhone: '',
     submitting: false,
-    savedProfile: null
+    savedProfile: null,
+    serverProfile: null
   },
 
   onShow() {
     this.refreshCart();
     this.restoreProfile();
+    this.loadServerProfile();
   },
 
-  // Restore name/phone from last order (saved to local storage)
+  // Restore name/phone from last order (saved to local storage).
+  // Server profile (from /api/users/me) takes priority since it's authoritative.
   restoreProfile() {
+    const serverProfile = this.data.serverProfile;
+    if (serverProfile) {
+      if (!this.data.customerName && serverProfile.nickname) {
+        this.setData({ customerName: serverProfile.nickname });
+      }
+      if (!this.data.customerPhone && serverProfile.phone) {
+        this.setData({ customerPhone: serverProfile.phone });
+      }
+      return;
+    }
     const saved = wx.getStorageSync('customer_profile');
     if (saved && !this.data.customerName && !this.data.customerPhone) {
       this.setData({
@@ -27,6 +40,25 @@ Page({
         customerPhone: saved.phone || '',
         savedProfile: saved
       });
+    }
+  },
+
+  // Pull the authoritative profile from the server (with the actual decrypted
+  // phone number if the user has bound one). Silently fail if not logged in.
+  async loadServerProfile() {
+    try {
+      const res = await api.getUserProfile();
+      const profile = res.data;
+      this.setData({ serverProfile: profile });
+      // If we have a real server profile and form is empty, fill it in
+      if (profile.nickname && !this.data.customerName) {
+        this.setData({ customerName: profile.nickname });
+      }
+      if (profile.phone && !this.data.customerPhone) {
+        this.setData({ customerPhone: profile.phone });
+      }
+    } catch (e) {
+      // Not logged in or network error - fall back to local profile
     }
   },
 
@@ -182,5 +214,9 @@ Page({
 
   goToMenu() {
     wx.switchTab({ url: '/pages/menu/menu' });
+  },
+
+  goToProfile() {
+    wx.navigateTo({ url: '/pages/profile/profile' });
   }
 });

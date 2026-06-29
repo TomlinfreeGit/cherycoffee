@@ -41,6 +41,10 @@
       <view class="customer-title">
         <text>取餐人信息</text>
         <text wx:if="{{savedProfile}}" class="customer-hint">已记住上次信息</text>
+        <text wx:elif="{{serverProfile && serverProfile.phone}}" class="customer-hint">已从我的资料同步</text>
+      </view>
+      <view wx:if="{{!serverProfile || !serverProfile.phone}}" class="profile-hint" bindtap="goToProfile">
+        <text>从微信一键获取手机号 ›</text>
       </view>
       <view class="form-group">
         <view class="form-label">姓名</view>

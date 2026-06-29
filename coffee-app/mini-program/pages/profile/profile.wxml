@@ -1,0 +1,76 @@
+<!-- filepath: coffee-app/mini-program/pages/profile/profile.wxml -->
+<view class="page-profile">
+  <block wx:if="{{loading}}">
+    <view class="loading">加载中...</view>
+  </block>
+
+  <block wx:else>
+    <!-- 头像区域 -->
+    <view class="section">
+      <view class="section-title">头像</view>
+      <view class="avatar-row">
+        <button
+          class="avatar-btn"
+          open-type="chooseAvatar"
+          bindchooseavatar="onChooseAvatar"
+        >
+          <image
+            wx:if="{{avatarUrl}}"
+            class="avatar-img"
+            src="{{avatarUrl}}"
+            mode="aspectFill"
+          />
+          <view wx:else class="avatar-placeholder">选择头像</view>
+        </button>
+        <text class="hint">点击选择微信头像</text>
+      </view>
+    </view>
+
+    <!-- 昵称区域 -->
+    <view class="section">
+      <view class="section-title">昵称</view>
+      <view class="nickname-row">
+        <input
+          type="nickname"
+          class="nickname-input"
+          value="{{nickname}}"
+          bindinput="onNicknameInput"
+          bindblur="onNicknameBlur"
+          placeholder="点击输入您的昵称"
+          maxlength="30"
+        />
+      </view>
+      <view class="hint">type="nickname" 会显示微信昵称建议</view>
+    </view>
+
+    <!-- 手机号区域 -->
+    <view class="section">
+      <view class="section-title">手机号</view>
+
+      <block wx:if="{{hasPhone}}">
+        <view class="phone-display">
+          <text class="phone-masked">{{phoneMasked}}</text>
+          <text class="phone-status">已绑定</text>
+        </view>
+        <button class="btn btn-secondary" bindtap="unbindPhone">解绑手机号</button>
+      </block>
+
+      <block wx:else>
+        <view class="hint phone-empty">尚未绑定手机号，用于取餐时联系</view>
+        <button
+          class="btn btn-primary phone-btn"
+          open-type="getPhoneNumber"
+          bindgetphonenumber="onGetPhoneNumber"
+        >
+          📱 一键绑定手机号
+        </button>
+      </block>
+    </view>
+
+    <view class="footer-hint">
+      · 头像、昵称保存到云端，登录后自动恢复<br/>
+      · 手机号由微信官方授权，仅用于取餐联系<br/>
+      · 取餐号会显示在「我的订单」页面
+    </view>
+  </block>
+</view>

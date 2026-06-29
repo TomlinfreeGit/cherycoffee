@@ -80,21 +80,21 @@ async function resolveOpenid(code) {
     setTimeout(() => codeCache.delete(code), CODE_TTL_MS).unref?.();
   }
 
-  return { openid: result.openid, isMock: false };
+  return { openid: result.openid, isMock: false, sessionKey: result.session_key };
 }
 
 /**
  * Create a new session.
  */
 async function createSession(code) {
-  const { openid } = await resolveOpenid(code);
+  const { openid, sessionKey, isMock } = await resolveOpenid(code);
   const token = 'tok_' + crypto.randomBytes(24).toString('hex');
 
   db.prepare(`
-    INSERT INTO sessions (token, openid) VALUES (?, ?)
-  `).run(token, openid);
+    INSERT INTO sessions (token, openid, session_key) VALUES (?, ?, ?)
+  `).run(token, openid, sessionKey || null);
 
-  return { token, openid };
+  return { token, openid, sessionKey, isMock };
 }
 
 function resolveSession(token) {
@@ -103,6 +103,27 @@ function resolveSession(token) {
   if (!row) return null;
   db.prepare(`UPDATE sessions SET last_seen_at = datetime('now', 'localtime') WHERE token = ?`).run(token);
   return row.openid;
+}
+
+/**
+ * Get the full session record (including session_key) for the given token.
+ * Returns null if the token is invalid.
+ */
+function getSessionByToken(token) {
+  if (!token) return null;
+  return db.prepare('SELECT * FROM sessions WHERE token = ?').get(token) || null;
+}
+
+/**
+ * Update session_key for an existing session.
+ * WeChat rotates session_key occasionally; when we get a new one, persist it.
+ */
+function updateSessionKey(token, sessionKey) {
+  if (!token || !sessionKey) return false;
+  const result = db.prepare(
+    `UPDATE sessions SET session_key = ?, last_seen_at = datetime('now', 'localtime') WHERE token = ?`
+  ).run(sessionKey, token);
+  return result.changes > 0;
 }
 
 function deleteSession(token) {
@@ -149,6 +170,8 @@ function getAuthConfig() {
 module.exports = {
   createSession,
   resolveSession,
+  getSessionByToken,
+  updateSessionKey,
   deleteSession,
   customerAuth,
   optionalCustomerAuth,

@@ -26,7 +26,8 @@ db.exec('PRAGMA foreign_keys = ON');
 const MIGRATIONS = [
   { table: 'order_items', column: 'product_image_url', type: 'TEXT' },
   { table: 'orders', column: 'customer_name', type: 'TEXT' },
-  { table: 'orders', column: 'customer_phone', type: 'TEXT' }
+  { table: 'orders', column: 'customer_phone', type: 'TEXT' },
+  { table: 'sessions', column: 'session_key', type: 'TEXT' }
 ];
 
 function runMigrations() {

@@ -57,14 +57,30 @@ CREATE TABLE IF NOT EXISTS daily_counter (
 
 -- 用户会话表：小程序登录后创建的会话
 -- 每个 session 绑定一个 openid（用户的微信唯一标识）
+-- session_key 用于解密手机号等敏感数据（来自 jscode2session）
 CREATE TABLE IF NOT EXISTS sessions (
   token TEXT PRIMARY KEY,
   openid TEXT NOT NULL,
+  session_key TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
   last_seen_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_openid ON sessions(openid);
+
+-- 用户档案表：缓存从微信拿到的昵称/头像/手机号
+-- 与 sessions 不同，openid 是稳定的，不会随登录过期
+CREATE TABLE IF NOT EXISTS users (
+  openid TEXT PRIMARY KEY,
+  nickname TEXT,
+  avatar_url TEXT,
+  phone TEXT,
+  phone_verified INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 `;
 
 module.exports = { SCHEMA_SQL };

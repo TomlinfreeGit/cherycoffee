@@ -188,5 +188,30 @@ module.exports = {
         }
       });
     });
+  },
+
+  // ─── 用户档案 ────────────────────────────────────
+  // 获取当前用户资料（昵称/头像/手机号脱敏）
+  async getUserProfile() {
+    await ensureLoggedIn();
+    return request('/users/me', 'GET');
+  },
+
+  // 更新昵称/头像
+  async updateProfile(data) {
+    await ensureLoggedIn();
+    return request('/users/me', 'PATCH', data);
+  },
+
+  // 解密微信手机号：传入 getPhoneNumber 回调里的 encryptedData + iv
+  async decryptPhone(encryptedData, iv) {
+    await ensureLoggedIn();
+    return request('/users/phone', 'POST', { encryptedData, iv });
+  },
+
+  // 解绑手机号
+  async unbindPhone() {
+    await ensureLoggedIn();
+    return request('/users/me/phone', 'DELETE');
   }
 };

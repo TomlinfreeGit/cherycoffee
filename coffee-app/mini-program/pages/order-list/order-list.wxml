@@ -1,5 +1,17 @@
 <!-- filepath: coffee-app/mini-program/pages/order-list/order-list.wxml -->
 <view class="page-list">
+  <!-- Profile entry -->
+  <view class="profile-card" bindtap="goToProfile">
+    <view class="profile-card-left">
+      <text class="profile-card-icon">👤</text>
+      <view class="profile-card-text">
+        <view class="profile-card-title">我的资料</view>
+        <view class="profile-card-subtitle">{{profileSubtitle}}</view>
+      </view>
+    </view>
+    <text class="profile-card-arrow">›</text>
+  </view>
+
   <view wx:if="{{loading && orders.length === 0}}" class="empty">
     <text>加载中...</text>
   </view>

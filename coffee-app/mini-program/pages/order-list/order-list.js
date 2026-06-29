@@ -5,11 +5,13 @@ const { formatTime, formatDate, statusLabel, statusClass } = require('../../util
 Page({
   data: {
     orders: [],
-    loading: true
+    loading: true,
+    profileSubtitle: '点击设置头像、昵称、手机号'
   },
 
   onShow() {
     this.loadOrders();
+    this.loadProfileSummary();
   },
 
   onPullDownRefresh() {
@@ -35,8 +37,27 @@ Page({
     }
   },
 
+  // Show a short profile summary in the card subtitle
+  async loadProfileSummary() {
+    try {
+      const res = await api.getUserProfile();
+      const parts = [];
+      if (res.data.nickname) parts.push(res.data.nickname);
+      if (res.data.phone_masked) parts.push(res.data.phone_masked);
+      this.setData({
+        profileSubtitle: parts.length ? parts.join(' · ') : '点击设置头像、昵称、手机号'
+      });
+    } catch (e) {
+      // ignore - the card still works as a navigation entry
+    }
+  },
+
   viewDetail(e) {
     const id = e.currentTarget.dataset.id;
     wx.navigateTo({ url: `/pages/order-detail/order-detail?id=${id}` });
+  },
+
+  goToProfile() {
+    wx.navigateTo({ url: '/pages/profile/profile' });
   }
 });
