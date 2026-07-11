@@ -81,6 +81,17 @@ export default function OrdersPage() {
     }
   };
 
+  // Open order detail modal: fetch the full order (with items) first.
+  // The list endpoint doesn't include items to keep responses small.
+  const openOrderDetail = async (orderId: number) => {
+    try {
+      const res = await api.getOrder(orderId);
+      setSelected(res.data);
+    } catch (e: any) {
+      showToast(`加载详情失败：${e.message}`, 'error');
+    }
+  };
+
   const counts = {
     active: orders.filter((o) => ['pending', 'paid', 'preparing', 'ready'].includes(o.status)).length,
     ready: orders.filter((o) => o.status === 'ready').length,
@@ -193,7 +204,7 @@ export default function OrdersPage() {
                     {o.customer_phone_masked || '—'}
                   </td>
                   <td>
-                    <button className="btn btn-sm" onClick={() => setSelected(o)}>
+                    <button className="btn btn-sm" onClick={() => openOrderDetail(o.id)}>
                       查看详情
                     </button>
                   </td>
