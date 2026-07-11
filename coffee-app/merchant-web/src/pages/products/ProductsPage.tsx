@@ -1,11 +1,13 @@
 // filepath: coffee-app/merchant-web/src/pages/products/ProductsPage.tsx
 import { useEffect, useRef, useState } from 'react';
-import { api, Product } from '../../api/client';
+import { api, Product, Category } from '../../api/client';
 import { API_BASE, resolveImageUrl } from '../../api/config';
 import { showToast } from '../../components/Toast';
 import { formatPrice } from '../../utils/format';
 
-const CATEGORIES = ['意式咖啡', '其他饮品', '创意特调'];
+// Categories are now loaded dynamically from /api/categories so admins can
+// add/remove categories in the 菜单分类 page and have them show up here
+// without code changes.
 
 interface ProductFormData {
   id?: number;
@@ -17,20 +19,30 @@ interface ProductFormData {
   available: boolean;
 }
 
-const emptyForm: ProductFormData = {
+const emptyForm = (defaultCategory: string): ProductFormData => ({
   name: '',
-  category: '意式咖啡',
+  category: defaultCategory,
   price: '',
   description: '',
   image_url: '',
   available: true
-};
+});
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [filter, setFilter] = useState<string>('all');
   const [editing, setEditing] = useState<ProductFormData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const loadCategories = async () => {
+    try {
+      const res = await api.listCategories();
+      setCategories(res.data);
+    } catch (e: any) {
+      console.warn('Failed to load categories:', e.message);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -45,8 +57,24 @@ export default function ProductsPage() {
   };
 
   useEffect(() => {
+    loadCategories();
     load();
   }, []);
+
+  // Re-fetch categories every time the page becomes visible (e.g. admin adds
+  // a new category in the 菜单分类 page then comes back here).
+  useEffect(() => {
+    const handler = () => loadCategories();
+    window.addEventListener('focus', handler);
+    document.addEventListener('visibilitychange', handler);
+    return () => {
+      window.removeEventListener('focus', handler);
+      document.removeEventListener('visibilitychange', handler);
+    };
+  }, []);
+
+  const categoryNames = categories.map((c) => c.name);
+  const defaultCategoryName = categoryNames[0] || '';
 
   const filtered = filter === 'all' ? products : products.filter((p) => p.category === filter);
 
@@ -71,12 +99,14 @@ export default function ProductsPage() {
     }
   };
 
-  const openCreate = () => setEditing({ ...emptyForm });
+  const openCreate = () => setEditing({ ...emptyForm(defaultCategoryName) });
   const openEdit = (p: Product) =>
     setEditing({
       id: p.id,
       name: p.name,
-      category: p.category,
+      // If the existing category is no longer in the list (e.g. deleted),
+      // fall back to the first available category so the dropdown has a valid value.
+      category: categoryNames.includes(p.category) ? p.category : defaultCategoryName,
       price: String(p.price),
       description: p.description || '',
       image_url: p.image_url || '',
@@ -96,18 +126,36 @@ export default function ProductsPage() {
         <button className={`chip ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>
           全部 ({products.length})
         </button>
-        {CATEGORIES.map((cat) => {
-          const cnt = products.filter((p) => p.category === cat).length;
+        {categories.map((cat) => {
+          const cnt = products.filter((p) => p.category === cat.name).length;
           return (
             <button
-              key={cat}
-              className={`chip ${filter === cat ? 'active' : ''}`}
-              onClick={() => setFilter(cat)}
+              key={cat.id}
+              className={`chip ${filter === cat.name ? 'active' : ''}`}
+              onClick={() => setFilter(cat.name)}
             >
-              {cat} ({cnt})
+              {cat.icon ? `${cat.icon} ` : ''}{cat.name} ({cnt})
             </button>
           );
         })}
+        {/* Show orphan categories: products whose category was deleted */}
+        {(() => {
+          const knownCats = new Set(categoryNames);
+          const orphanCats = Array.from(new Set(products.map((p) => p.category).filter(Boolean)))
+            .filter((c) => !knownCats.has(c!));
+          if (orphanCats.length === 0) return null;
+          return orphanCats.map((cat) => (
+            <button
+              key={`orphan-${cat}`}
+              className={`chip ${filter === cat ? 'active' : ''}`}
+              style={{ borderStyle: 'dashed' }}
+              title="此分类已被删除,商品保留但未归类"
+              onClick={() => setFilter(cat!)}
+            >
+              {cat} (未分类)
+            </button>
+          ));
+        })()}
       </div>
 
       {loading ? (
@@ -183,6 +231,7 @@ export default function ProductsPage() {
       {editing && (
         <ProductFormModal
           initial={editing}
+          categories={categories}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
@@ -198,10 +247,12 @@ export default function ProductsPage() {
 
 function ProductFormModal({
   initial,
+  categories,
   onClose,
   onSaved
 }: {
   initial: ProductFormData;
+  categories: Category[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -317,11 +368,15 @@ function ProductFormModal({
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
           >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
+            {categories.length === 0 ? (
+              <option value="">（暂无分类,请先到「菜单分类」页面创建）</option>
+            ) : (
+              categories.map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.icon ? `${c.icon} ` : ''}{c.name}
+                </option>
+              ))
+            )}
           </select>
         </div>
 
