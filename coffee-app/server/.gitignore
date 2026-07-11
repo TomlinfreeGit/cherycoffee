@@ -7,3 +7,4 @@ uploads/
 *.db-wal
 .env
 .DS_Store
+server.log

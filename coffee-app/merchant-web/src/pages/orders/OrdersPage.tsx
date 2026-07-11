@@ -1,9 +1,10 @@
 // filepath: coffee-app/merchant-web/src/pages/orders/OrdersPage.tsx
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { api, Order, OrderItem } from '../../api/client';
 import { showToast } from '../../components/Toast';
 import { formatTime, formatPrice } from '../../utils/format';
 import StatusBadge from '../../components/StatusBadge';
+import { usePagedList } from '../../hooks/usePagedList';
 
 type FilterStatus = 'all' | 'active' | Order['status'];
 
@@ -28,35 +29,47 @@ const NEXT_STATUS: Partial<Record<Order['status'], { status: Order['status']; la
   ready: [{ status: 'completed', label: '已取餐', primary: true }]
 };
 
+const ORDER_PAGE_SIZE = 50;
+
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<FilterStatus>('active');
   const [selected, setSelected] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
 
-  const load = useCallback(async () => {
-    try {
-      const res = await api.listOrders(search ? { search } : undefined);
-      setOrders(res.data);
-    } catch (e: any) {
-      showToast(`加载失败：${e.message}`, 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [search]);
-
+  // 500ms 去抖后,再触发后端查询 (避免每次按键都拉接口)
   useEffect(() => {
-    load();
-  }, [load]);
+    const t = setTimeout(() => setSearch(searchInput.trim()), 500);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
-  // Auto-refresh every 5 seconds
+  // 分页列表:每页 50 条,滚到底自动加载下一页
+  const list = usePagedList<Order>({
+    pageSize: ORDER_PAGE_SIZE,
+    deps: [search],
+    fetch: async (limit, offset) => {
+      const res = await api.listOrders({ search: search || undefined, limit, offset });
+      // 后端可能返回旧格式 { data: [...] } 或新格式 { data, total, hasMore }
+      // 做个稳健的类型适配
+      if (Array.isArray((res as any).data) && typeof (res as any).hasMore === 'boolean') {
+        return res as any;
+      }
+      const data = (res as any).data || [];
+      return { data, total: data.length, hasMore: false };
+    }
+  });
+  const orders = list.items;
+
+  // 自动刷新:有 "进行中" 订单时,每 5s 拉第一页 (因为新订单会进来 / 状态会变)
+  // 已加载第二页之后的页面不刷新,避免跳到顶部让用户丢失阅读位置
+  const loadRef = useRef(list.refresh);
+  loadRef.current = list.refresh;
   useEffect(() => {
     if (!autoRefresh) return;
-    const t = setInterval(load, 5000);
+    const t = setInterval(() => loadRef.current(), 5000);
     return () => clearInterval(t);
-  }, [load, autoRefresh]);
+  }, [autoRefresh]);
 
   const filtered = (() => {
     if (filter === 'all') return orders;
@@ -71,7 +84,7 @@ export default function OrdersPage() {
     try {
       await api.updateOrderStatus(order.id, newStatus);
       showToast(`订单 ${order.pickup_number} 已更新`, 'success');
-      load();
+      list.refresh();
       if (selected && selected.id === order.id) {
         const updated = await api.getOrder(order.id);
         setSelected(updated.data);
@@ -137,7 +150,7 @@ export default function OrdersPage() {
               />
               自动刷新 (5s)
             </label>
-            <button className="btn btn-sm" onClick={load}>
+            <button className="btn btn-sm" onClick={list.refresh}>
               ↻ 刷新
             </button>
           </div>
@@ -155,10 +168,9 @@ export default function OrdersPage() {
           ))}
           <input
             type="text"
-            placeholder="搜索：手机号 / 姓名（回车）"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') load(); }}
+            placeholder="搜索：手机号 / 姓名"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             style={{
               flex: 1,
               minWidth: 200,
@@ -170,12 +182,21 @@ export default function OrdersPage() {
           />
         </div>
 
-        {loading ? (
+        {list.loading ? (
           <div className="empty">加载中...</div>
         ) : filtered.length === 0 ? (
           <div className="empty">暂无订单</div>
         ) : (
-          <table>
+          <>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
+              共 {list.total} 单，当前显示 {filtered.length} 单
+              {filter !== 'all' && list.hasMore && (
+                <span style={{ marginLeft: 8, color: 'var(--warning)' }}>
+                  （注：当前过滤可能隐藏部分已加载的订单，继续滚到底会拉取更多原始数据）
+                </span>
+              )}
+            </div>
+            <table>
             <thead>
               <tr>
                 <th>取餐号</th>
@@ -227,6 +248,25 @@ export default function OrdersPage() {
               ))}
             </tbody>
           </table>
+
+          {/* 列表底部:sentinel + 手动加载更多按钮 (有些浏览器 IntersectionObserver 不可用) */}
+          <div
+            ref={list.sentinelRef}
+            style={{ height: 1, marginTop: 16 }}
+            aria-hidden="true"
+          />
+          <div style={{ textAlign: 'center', padding: '16rpx 0 24rpx', color: 'var(--muted)', fontSize: 13 }}>
+            {list.loadingMore && <span>加载中…</span>}
+            {!list.loadingMore && list.hasMore && (
+              <button className="btn btn-sm" onClick={list.loadMore}>
+                加载更多
+              </button>
+            )}
+            {!list.loadingMore && !list.hasMore && list.total > 0 && (
+              <span>— 已显示全部 {list.total} 单 —</span>
+            )}
+          </div>
+          </>
         )}
       </div>
 

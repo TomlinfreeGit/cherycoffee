@@ -9,7 +9,12 @@
     <view class="level-card">
       <view class="level-card-header">
         <view class="level-badge">Lv.{{userLevel}}</view>
-        <view class="level-discount">{{discountPct}}折</view>
+        <!--
+          Lv.1 时 discount = 1.00 意味着全价不打折,显示 “无折扣” 更友好。
+          高级别才显示 99折 / 95折 这种折扣幅度。
+        -->
+        <view class="level-discount" wx:if="{{discountPct >= 100}}">无折扣</view>
+        <view class="level-discount" wx:else>{{discountPct}}折</view>
       </view>
       <view class="level-progress-label">
         <text>已完成 {{completedOrders}} 单</text>

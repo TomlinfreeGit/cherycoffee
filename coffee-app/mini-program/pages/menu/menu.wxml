@@ -1,11 +1,18 @@
 <!-- filepath: coffee-app/mini-program/pages/menu/menu.wxml -->
+<!--
+  顶层 .page-menu 改为纵向 flex:
+    - .level-bar  顶部 banner (flex: 0 0 auto,仅 level>1 渲染)
+    - .menu-body  横向 flex,包含 sidebar + product-area
+  这样 banner 会真正占用 56rpx 的高度,下面的 scroll-view
+  自动缩短,不会被 banner 遮住顶部菜单内容。
+-->
 <view class="page-menu">
-  <!-- 顶部会员等级条 (仅当 level>1 时显示) -->
   <view class="level-bar" wx:if="{{hasDiscount}}">
     <text class="level-icon">⭐</text>
     <text class="level-text">Lv.{{userLevel}} 会员专享价</text>
   </view>
 
+  <view class="menu-body">
   <!-- 左侧分类栏 -->
   <scroll-view class="category-sidebar" scroll-y enhanced show-scrollbar="{{false}}">
     <view
@@ -144,4 +151,5 @@
       </view>
     </view>
   </view>
-</view>
+  </view><!-- /.menu-body -->
+</view><!-- /.page-menu -->

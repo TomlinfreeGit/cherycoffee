@@ -41,36 +41,67 @@ function maskOrders(orders) {
 router.use(merchantAuth);
 
 // GET /api/merchant/orders - list ALL orders
+//
+// Query:
+//   status  - filter by order status (optional)
+//   search  - phone (digits → LIKE) or name (LIKE) (optional)
+//   limit   - page size (default 50 if provided, max 200; when omitted, returns all)
+//   offset  - page offset (default 0)
+//
+// Response (when limit provided): { data, total, limit, offset, hasMore }
+// Without limit: { data } (legacy)
 router.get('/orders', (req, res) => {
   try {
-    const { status, limit, search } = req.query;
-    let sql = 'SELECT * FROM orders WHERE 1=1';
+    const { status, limit, offset, search } = req.query;
+
+    // WHERE 子句复用,主查询和 count 查询都走同一个过滤器
+    const where = ['1=1'];
     const params = [];
 
     if (status) {
-      sql += ' AND status = ?';
+      where.push('status = ?');
       params.push(status);
     }
 
     if (search) {
-      // Search by phone (exact) or name (LIKE)
       const trimmed = String(search).trim();
       if (/^\d+$/.test(trimmed)) {
-        sql += ' AND customer_phone LIKE ?';
+        where.push('customer_phone LIKE ?');
         params.push(`%${trimmed}%`);
-      } else {
-        sql += ' AND customer_name LIKE ?';
+      } else if (trimmed) {
+        where.push('customer_name LIKE ?');
         params.push(`%${trimmed}%`);
       }
     }
+    const whereSql = ' WHERE ' + where.join(' AND ');
 
-    sql += ' ORDER BY created_at DESC';
-
-    if (limit) {
-      sql += ' LIMIT ?';
-      params.push(parseInt(limit, 10));
+    const isPaged = limit !== undefined && limit !== '';
+    let pageSize = 50;
+    let pageOffset = 0;
+    if (isPaged) {
+      pageSize = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
+      pageOffset = Math.max(0, parseInt(offset, 10) || 0);
     }
 
+    if (isPaged) {
+      const countSql = 'SELECT COUNT(*) AS cnt FROM orders' + whereSql;
+      const total = db.prepare(countSql).get(...params).cnt;
+
+      const sql =
+        'SELECT * FROM orders' + whereSql +
+        ' ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?';
+      const rows = db.prepare(sql).all(...params, pageSize, pageOffset);
+      return res.json({
+        data: maskOrders(rows),
+        total,
+        limit: pageSize,
+        offset: pageOffset,
+        hasMore: pageOffset + rows.length < total
+      });
+    }
+
+    // Legacy path
+    const sql = 'SELECT * FROM orders' + whereSql + ' ORDER BY created_at DESC, id DESC';
     const rows = db.prepare(sql).all(...params);
     res.json({ data: maskOrders(rows) });
   } catch (err) {
@@ -276,7 +307,7 @@ router.get('/users', (req, res) => {
       updated_at: u.updated_at
     }));
 
-    res.json({ data, total, limit: lim, offset: off });
+    res.json({ data, total, limit: lim, offset: off, hasMore: off + data.length < total });
   } catch (err) {
     console.error('GET /api/merchant/users error:', err);
     res.status(500).json({ error: 'Internal server error' });

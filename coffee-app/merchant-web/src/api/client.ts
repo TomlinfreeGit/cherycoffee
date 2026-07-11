@@ -88,6 +88,15 @@ export interface UserListResult {
   total: number;
   limit: number;
   offset: number;
+  hasMore: boolean;
+}
+
+export interface PagedOrderResult {
+  data: Order[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
 }
 
 export interface Category {
@@ -116,12 +125,15 @@ export const api = {
   deleteProduct: (id: number) => request<void>('DELETE', `/products/${id}`),
 
   // Orders (merchant endpoints - sees all orders)
-  listOrders: (params?: { status?: string; search?: string }) => {
+  // params.limit + params.offset 为可选:不传时后端走“返全部”的旧逻辑
+  listOrders: (params?: { status?: string; search?: string; limit?: number; offset?: number }) => {
     const q = new URLSearchParams();
     if (params?.status) q.set('status', params.status);
     if (params?.search) q.set('search', params.search);
+    if (params?.limit !== undefined) q.set('limit', String(params.limit));
+    if (params?.offset !== undefined) q.set('offset', String(params.offset));
     const qs = q.toString();
-    return request<{ data: Order[] }>('GET', `/merchant/orders${qs ? `?${qs}` : ''}`);
+    return request<PagedOrderResult | { data: Order[] }>('GET', `/merchant/orders${qs ? `?${qs}` : ''}`);
   },
   getOrder: (id: number) => request<{ data: Order }>('GET', `/merchant/orders/${id}`),
   updateOrderStatus: (id: number, status: Order['status']) =>

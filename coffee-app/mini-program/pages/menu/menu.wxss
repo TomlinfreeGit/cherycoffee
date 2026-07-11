@@ -15,19 +15,17 @@
 .page-menu {
   position: absolute;
   inset: 0;
+  /* 纵向 flex: banner 在上,下面 menu-body 占满剩余空间 */
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   background: var(--bg);
   overflow: hidden;
 }
 
 /* ─── 顶部会员等级条 ──────────────────────────────── */
+/* 作为 flex 子项,固定高度 56rpx,不再 absolute 覆上去 */
 .level-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 56rpx;
+  flex: 0 0 56rpx;
   background: linear-gradient(90deg, #ff9966, #ff5e62);
   color: #fff;
   display: flex;
@@ -35,15 +33,18 @@
   justify-content: center;
   font-size: 26rpx;
   font-weight: 500;
-  z-index: 10;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
 }
 .level-bar .level-icon { margin-right: 8rpx; }
 
-/* 当 level-bar 显示时,让下面的 sidebar 和 product-area 向下偏移 */
-.category-sidebar,
-.product-area { padding-top: 56rpx; }
-.has-level-bar .bottom-bar { bottom: 0; }
+/* 横向下半区:左 sidebar + 右 product-area */
+.menu-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  min-height: 0; /* 重要:让 flex 子项能在一级 flex 容器中缩到比内容小 */
+  overflow: hidden;
+}
 
 /* ─── 左侧分类栏 ─────────────────────────────────── */
 .category-sidebar {
@@ -52,8 +53,11 @@
   flex: 0 0 200rpx;
   background: var(--panel);
   border-right: 1rpx solid var(--border);
-  /* 关键:scroll-view 需要确定高度。 用 `height: 100%` 让其填满 flex 父容器的高度 */
+  /* 关键:scroll-view 需要确定高度才能滚动。
+     在 flex 容器里 用 height:100% + flex 自身拉伸 填满 .menu-body 剩余高度 */
   height: 100%;
+  /* flex 子项想要被压到比内容小,必须显式声明 */
+  min-height: 0;
 }
 
 .sidebar-item {
@@ -95,6 +99,7 @@
   flex: 1;
   width: calc(100% - 200rpx);
   height: 100%;
+  min-height: 0;
   padding: 16rpx 16rpx 24rpx;
   box-sizing: border-box;
 }

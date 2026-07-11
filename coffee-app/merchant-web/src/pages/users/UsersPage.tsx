@@ -1,51 +1,46 @@
 // filepath: coffee-app/merchant-web/src/pages/users/UsersPage.tsx
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { api, User } from '../../api/client';
 import { showToast } from '../../components/Toast';
 import { formatTime, formatDate } from '../../utils/format';
+import { usePagedList } from '../../hooks/usePagedList';
 
 type PhoneFilter = 'all' | 'yes' | 'no';
 
+const USER_PAGE_SIZE = 100;
+
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [total, setTotal] = useState(0);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [phoneFilter, setPhoneFilter] = useState<PhoneFilter>('all');
-  const [loading, setLoading] = useState(true);
   const [deletingOpenid, setDeletingOpenid] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<User | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params: { search?: string; has_phone?: boolean; limit: number; offset: number } = {
-        limit: 100,
-        offset: 0
-      };
-      if (search) params.search = search;
-      if (phoneFilter === 'yes') params.has_phone = true;
-      if (phoneFilter === 'no') params.has_phone = false;
-
-      const res = await api.listUsers(params);
-      setUsers(res.data);
-      setTotal(res.total);
-    } catch (e: any) {
-      showToast(`加载失败：${e.message}`, 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [search, phoneFilter]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  // Debounced search
-  const [searchInput, setSearchInput] = useState('');
+  // 400ms 去抖后送到后端
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 400);
     return () => clearTimeout(t);
   }, [searchInput]);
+
+  // 分页列表
+  const list = usePagedList<User>({
+    pageSize: USER_PAGE_SIZE,
+    deps: [search, phoneFilter],
+    fetch: async (limit, offset) => {
+      const params: { search?: string; has_phone?: boolean; limit: number; offset: number } = {
+        limit,
+        offset
+      };
+      if (search) params.search = search;
+      if (phoneFilter === 'yes') params.has_phone = true;
+      if (phoneFilter === 'no') params.has_phone = false;
+      const res = await api.listUsers(params);
+      return res;
+    }
+  });
+  const users = list.items;
+  const total = list.total;
+  const loading = list.loading;
 
   const handleDeleteClick = (u: User) => {
     setConfirmTarget(u);
@@ -63,7 +58,7 @@ export default function UsersPage() {
         'success'
       );
       setConfirmTarget(null);
-      load();
+      list.refresh();
     } catch (e: any) {
       showToast(`删除失败：${e.message}`, 'error');
     } finally {
@@ -178,6 +173,28 @@ export default function UsersPage() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {/* 分页底部:sentinel + 手动加载更多按钮 */}
+      {!loading && users.length > 0 && (
+        <>
+          <div
+            ref={list.sentinelRef}
+            style={{ height: 1, marginTop: 16 }}
+            aria-hidden="true"
+          />
+          <div style={{ textAlign: 'center', padding: '16rpx 0 24rpx', color: 'var(--muted)', fontSize: 13 }}>
+            {list.loadingMore && <span>加载中…</span>}
+            {!list.loadingMore && list.hasMore && (
+              <button className="btn btn-sm" onClick={list.loadMore}>
+                加载更多
+              </button>
+            )}
+            {!list.loadingMore && !list.hasMore && total > 0 && (
+              <span>— 已显示全部 {total} 个用户 —</span>
+            )}
+          </div>
+        </>
       )}
 
       {confirmTarget && (
