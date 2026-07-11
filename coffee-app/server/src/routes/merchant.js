@@ -87,7 +87,7 @@ router.get('/orders/:id', (req, res) => {
     }
     const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
     res.json({
-      data: { ...order, customer_phone_masked: maskPhone(order.customer_phone) }
+      data: { ...order, customer_phone_masked: maskPhone(order.customer_phone), items }
     });
   } catch (err) {
     console.error('GET /api/merchant/orders/:id error:', err);

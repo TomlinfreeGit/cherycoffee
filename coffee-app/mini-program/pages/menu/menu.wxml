@@ -112,7 +112,8 @@
 
       <view class="detail-body">
         <view class="detail-name">{{detailProduct.name}}</view>
-        <view class="detail-price price">¥{{detailProduct.price}}</view>
+        <!-- 注意：.price class 会在前面自动加 ¥ (CSS ::before),所以这里不能再写 ¥ -->
+        <view class="detail-price price">{{detailProduct.price}}</view>
         <view class="detail-section-title">商品介绍</view>
         <view class="detail-desc">
           {{detailProduct.description || '暂无介绍'}}
