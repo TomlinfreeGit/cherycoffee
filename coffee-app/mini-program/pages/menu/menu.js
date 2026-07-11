@@ -1,27 +1,22 @@
 // filepath: coffee-app/mini-program/pages/menu/menu.js
 const app = getApp();
 const api = require('../../utils/api.js');
-const { formatDate } = require('../../utils/format.js');
-
-const CATEGORIES = [
-  { key: '意式咖啡', label: '意式咖啡' },
-  { key: '其他饮品', label: '其他饮品' },
-  { key: '创意特调', label: '创意特调' }
-];
 
 Page({
   data: {
-    categories: CATEGORIES,
-    activeCategory: '意式咖啡',
+    categories: [],
+    activeCategory: '',
     products: [],
     loading: true,
     cartCount: 0,
-    cartTotal: '0.00'
+    cartTotal: '0.00',
+    // 商品详情弹窗
+    detailProduct: null,
+    detailVisible: false
   },
 
   onLoad() {
-    this.loadProducts();
-    // 静默登录（在加载商品后异步进行）
+    this.loadCategoriesAndProducts();
     api.ensureLoggedIn().catch((e) => console.warn('Login:', e.message));
   },
 
@@ -29,43 +24,72 @@ Page({
     this.refreshCart();
   },
 
-  // 下拉刷新
   onPullDownRefresh() {
-    this.loadProducts().then(() => wx.stopPullDownRefresh());
+    this.loadCategoriesAndProducts().then(() => wx.stopPullDownRefresh());
   },
 
-  async loadProducts() {
+  async loadCategoriesAndProducts() {
     this.setData({ loading: true });
     try {
-      const res = await api.listProducts({ availableOnly: true });
-      // Resolve image URLs to absolute paths so <image> can display them
-      const products = res.data.map((p) => ({
+      const [catRes, prodRes] = await Promise.all([
+        api.listCategories(),
+        api.listProducts({ availableOnly: true })
+      ]);
+
+      const categories = catRes.data;
+      const products = prodRes.data.map((p) => ({
         ...p,
         imageUrl: api.resolveImageUrl(p.image_url),
-        emoji: this.emojiForCategory(p.category)
+        icon: this.iconForCategory(p.category)
       }));
-      this.setData({ products });
+
+      // 默认选中第一个分类(若当前已选中且仍存在则保留)
+      const activeCategory =
+        this.data.activeCategory && categories.some((c) => c.name === this.data.activeCategory)
+          ? this.data.activeCategory
+          : (categories[0] ? categories[0].name : '');
+
+      this.setData({
+        categories,
+        products,
+        activeCategory,
+        activeCategoryEmpty: this._isEmptyForCategory(products, activeCategory),
+        loading: false
+      });
     } catch (e) {
       wx.showToast({ title: e.message || '加载失败', icon: 'none' });
-    } finally {
       this.setData({ loading: false });
     }
   },
 
-  // Fallback emoji for products without images
-  emojiForCategory(category) {
+  // 是否当前分类下没有任何商品
+  _isEmptyForCategory(products, categoryName) {
+    if (!categoryName) return true;
+    return !products.some((p) => p.category === categoryName);
+  },
+
+  // 默认 emoji 图标(分类没设置 icon 时使用)
+  iconForCategory(category) {
     if (category === '意式咖啡') return '☕';
     if (category === '创意特调') return '🍹';
-    return '🥤';
+    if (category === '其他饮品') return '🥤';
+    return '🍵';
   },
 
-  // 切换分类
   switchCategory(e) {
     const key = e.currentTarget.dataset.key;
-    this.setData({ activeCategory: key });
+    if (key === this.data.activeCategory) return;
+    this.setData({
+      activeCategory: key,
+      activeCategoryEmpty: this._isEmptyForCategory(this.data.products, key)
+    });
   },
 
-  // 图片加载失败：清除 imageUrl，fallback 到 emoji
+  // 直接渲染 wx:if 进行过滤(比 computed 更可靠)
+  isActiveCategory(product) {
+    return product.category === this.data.activeCategory;
+  },
+
   onImageError(e) {
     const id = e.currentTarget.dataset.id;
     const products = this.data.products.map((p) =>
@@ -74,15 +98,48 @@ Page({
     this.setData({ products });
   },
 
-  // 添加到购物车
+  // 点击商品图片:弹出详情
+  onProductImageTap(e) {
+    const id = e.currentTarget.dataset.id;
+    const product = this.data.products.find((p) => p.id === id);
+    if (!product) return;
+    // Ensure detailProduct has an icon fallback
+    if (!product.icon) product.icon = this.iconForCategory(product.category);
+    this.setData({
+      detailProduct: product,
+      detailVisible: true
+    });
+  },
+
+  // 关闭详情
+  closeDetail() {
+    this.setData({ detailVisible: false });
+  },
+
+  // 从详情弹窗加购
+  addToCartFromDetail() {
+    const product = this.data.detailProduct;
+    if (!product) return;
+
+    app.addToCart(product);
+    wx.vibrateShort({ type: 'light' });
+    wx.showToast({
+      title: `已加入 ${product.name}`,
+      icon: 'success',
+      duration: 1200
+    });
+
+    this.setData({ detailVisible: false });
+    this.refreshCart();
+  },
+
+  // 内联加购(保留原行为,某些用户可能习惯直接 +)
   async addToCart(e) {
     const id = e.currentTarget.dataset.id;
     const product = this.data.products.find((p) => p.id === id);
     if (!product) return;
 
     app.addToCart(product);
-
-    // 触觉反馈
     wx.vibrateShort({ type: 'light' });
     wx.showToast({
       title: `已加入 ${product.name}`,

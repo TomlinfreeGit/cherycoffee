@@ -143,6 +143,11 @@ module.exports = {
     return request(`/products${qs ? '?' + qs : ''}`, 'GET');
   },
 
+  // 分类（公开接口）
+  listCategories() {
+    return request('/categories', 'GET');
+  },
+
   // 订单（需要登录）
   // options: { customer_note?, customer_name?, customer_phone? }
   async createOrder(items, options = {}) {

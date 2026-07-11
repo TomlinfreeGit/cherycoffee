@@ -80,6 +80,16 @@ export interface UserListResult {
   offset: number;
 }
 
+export interface Category {
+  id: number;
+  name: string;
+  sort_order: number;
+  icon: string | null;
+  product_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export const api = {
   // Products
   listProducts: (params?: { category?: string; availableOnly?: boolean }) => {
@@ -131,5 +141,17 @@ export const api = {
     request<{ data: { openid: string; deleted_user: boolean; anonymized_orders: number; deleted_sessions: number } }>(
       'DELETE',
       `/merchant/users/${encodeURIComponent(openid)}`
+    ),
+
+  // Categories
+  listCategories: () => request<{ data: Category[] }>('GET', '/categories'),
+  createCategory: (data: { name: string; sort_order?: number; icon?: string }) =>
+    request<{ data: Category }>('POST', '/categories', data),
+  updateCategory: (id: number, data: { name?: string; sort_order?: number; icon?: string }) =>
+    request<{ data: Category }>('PATCH', `/categories/${id}`, data),
+  deleteCategory: (id: number) =>
+    request<{ data: { id: number; name: string; deleted: boolean; detached_products: number } }>(
+      'DELETE',
+      `/categories/${id}`
     )
 };

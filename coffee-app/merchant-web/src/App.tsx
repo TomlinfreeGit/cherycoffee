@@ -5,6 +5,7 @@ import LoginPage from './pages/login/LoginPage';
 import ProductsPage from './pages/products/ProductsPage';
 import OrdersPage from './pages/orders/OrdersPage';
 import UsersPage from './pages/users/UsersPage';
+import CategoriesPage from './pages/categories/CategoriesPage';
 import { auth } from './api/auth';
 import { ToastContainer } from './components/Toast';
 
@@ -38,6 +39,9 @@ function Layout({ children }: { children: React.ReactNode }) {
           </NavLink>
           <NavLink to="/users" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
             用户管理
+          </NavLink>
+          <NavLink to="/categories" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+            菜单分类
           </NavLink>
           <button onClick={logout} className="btn btn-ghost">退出</button>
         </nav>
@@ -83,6 +87,16 @@ function App() {
             <RequireAuth>
               <Layout>
                 <UsersPage />
+              </Layout>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/categories"
+          element={
+            <RequireAuth>
+              <Layout>
+                <CategoriesPage />
               </Layout>
             </RequireAuth>
           }

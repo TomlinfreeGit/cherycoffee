@@ -81,6 +81,22 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
+
+-- 菜单分类表
+-- 与 products.category 字段冗余存储：分类本身有自己的元数据（icon、排序），
+-- 但 product.category 仍是字符串（保证兼容性）。
+CREATE TABLE IF NOT EXISTS categories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  icon TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_categories_sort ON categories(sort_order);
+
+-- 种子分类：如果表为空，插入默认三类
 `;
 
 module.exports = { SCHEMA_SQL };

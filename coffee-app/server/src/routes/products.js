@@ -49,9 +49,10 @@ router.post('/', (req, res) => {
   try {
     const { name, category, price, description, image_url, available, sort_order } = req.body;
 
-    if (!name || !category || price == null) {
-      return res.status(400).json({ error: 'name, category, and price are required' });
+    if (!name || price == null) {
+      return res.status(400).json({ error: 'name and price are required' });
     }
+    // category is optional (products can be created without a category, or detached)
 
     // Compute next sort_order if not provided
     let sortVal = sort_order;
@@ -65,7 +66,7 @@ router.post('/', (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
       name,
-      category,
+      category || null,
       Number(price),
       description || null,
       image_url || null,

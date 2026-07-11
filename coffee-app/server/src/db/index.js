@@ -27,7 +27,10 @@ const MIGRATIONS = [
   { table: 'order_items', column: 'product_image_url', type: 'TEXT' },
   { table: 'orders', column: 'customer_name', type: 'TEXT' },
   { table: 'orders', column: 'customer_phone', type: 'TEXT' },
-  { table: 'sessions', column: 'session_key', type: 'TEXT' }
+  { table: 'sessions', column: 'session_key', type: 'TEXT' },
+  // Make products.category nullable so categories can be deleted without
+  // violating NOT NULL (products get their category set to NULL = detached).
+  { table: 'products', column: 'category', type: 'TEXT', allowNull: true }
 ];
 
 function runMigrations() {
@@ -40,8 +43,50 @@ function runMigrations() {
         db.exec(`ALTER TABLE ${m.table} ADD COLUMN ${m.column} ${m.type}${defaultClause}`);
         console.log(`✓ Migration: added ${m.table}.${m.column}`);
       } catch (e) {
-        console.warn(`Migration failed for ${m.table}.${m.column}:`, e.message);
+        // Column already exists with different definition - try a no-op
+        console.warn(`Migration skipped ${m.table}.${m.column}: ${e.message}`);
       }
+    }
+  }
+
+  // SQL-level migrations: relax constraints (SQLite doesn't support ALTER COLUMN).
+  // We use a "shadow table" approach: create new table → copy → rename.
+  // FK checks are temporarily disabled because order_items references products.id.
+  const productsCols = db.prepare(`PRAGMA table_info(products)`).all();
+  const catCol = productsCols.find((c) => c.name === 'category');
+
+  // Clean up any leftover shadow table from a previous failed migration
+  db.exec('DROP TABLE IF EXISTS products_new');
+
+  if (catCol && catCol.notnull === 1) {
+    try {
+      console.log('Migration: relaxing products.category NOT NULL → NULL...');
+      db.exec('PRAGMA foreign_keys = OFF');
+      db.exec(`
+        CREATE TABLE products_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          category TEXT,
+          price REAL NOT NULL,
+          description TEXT,
+          image_url TEXT,
+          available INTEGER NOT NULL DEFAULT 1,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+        );
+        INSERT INTO products_new (id, name, category, price, description, image_url, available, sort_order, created_at, updated_at)
+          SELECT id, name, category, price, description, image_url, available, sort_order, created_at, updated_at FROM products;
+        DROP TABLE products;
+        ALTER TABLE products_new RENAME TO products;
+        CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+        CREATE INDEX IF NOT EXISTS idx_products_available ON products(available);
+      `);
+      db.exec('PRAGMA foreign_keys = ON');
+      console.log('✓ Migration: products.category is now nullable');
+    } catch (e) {
+      db.exec('PRAGMA foreign_keys = ON');
+      console.warn('Migration: relax products.category failed:', e.message);
     }
   }
 }
@@ -97,6 +142,31 @@ function seedInitialData() {
   console.log(`✓ Seeded ${seedProducts.length} products`);
 }
 
+// Seed default categories if the table is empty
+function seedCategories() {
+  const count = db.prepare('SELECT COUNT(*) as cnt FROM categories').get();
+  if (count.cnt > 0) return;
+
+  const insertCategory = db.prepare(`
+    INSERT INTO categories (name, sort_order, icon) VALUES (?, ?, ?)
+  `);
+  const seedCats = [
+    ['意式咖啡', 1, '☕'],
+    ['其他饮品', 2, '🥤'],
+    ['创意特调', 3, '🍹']
+  ];
+  try {
+    db.exec('BEGIN');
+    for (const c of seedCats) insertCategory.run(...c);
+    db.exec('COMMIT');
+    console.log(`✓ Seeded ${seedCats.length} categories`);
+  } catch (e) {
+    db.exec('ROLLBACK');
+    console.warn('Category seed failed:', e.message);
+  }
+}
+
 seedInitialData();
+seedCategories();
 
 module.exports = { db };
