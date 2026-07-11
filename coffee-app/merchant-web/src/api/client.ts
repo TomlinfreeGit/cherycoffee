@@ -99,6 +99,13 @@ export interface PagedOrderResult {
   hasMore: boolean;
 }
 
+export interface OrderStats {
+  active: number;     // pending|paid|preparing|ready
+  preparing: number;
+  ready: number;
+  today: number;
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -125,7 +132,9 @@ export const api = {
   deleteProduct: (id: number) => request<void>('DELETE', `/products/${id}`),
 
   // Orders (merchant endpoints - sees all orders)
-  // params.limit + params.offset 为可选:不传时后端走“返全部”的旧逻辑
+  // params.status 可以是单个订单状态 (pending/paid/...),
+  // 也可以传 'active' 表示“进行中”,后端会翻译成 SQL IN (...)。
+  // params.limit + params.offset 为可选:不传时后端走“返全部”的旧逻辑。
   listOrders: (params?: { status?: string; search?: string; limit?: number; offset?: number }) => {
     const q = new URLSearchParams();
     if (params?.status) q.set('status', params.status);
@@ -135,6 +144,8 @@ export const api = {
     const qs = q.toString();
     return request<PagedOrderResult | { data: Order[] }>('GET', `/merchant/orders${qs ? `?${qs}` : ''}`);
   },
+  // 顶部 KPI 卡片的订单统计(独立接口,不受分页/过滤影响)
+  getOrderStats: () => request<{ data: OrderStats }>('GET', '/merchant/orders/stats'),
   getOrder: (id: number) => request<{ data: Order }>('GET', `/merchant/orders/${id}`),
   updateOrderStatus: (id: number, status: Order['status']) =>
     request<{ data: Order }>('PATCH', `/merchant/orders/${id}/status`, { status }),

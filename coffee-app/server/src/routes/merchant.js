@@ -40,10 +40,15 @@ function maskOrders(orders) {
 // All merchant routes require auth
 router.use(merchantAuth);
 
+// 虚拟状态过滤器:将商户页面上的 “进行中” 映射到 SQL IN (...)
+// 这是为了避免前端从一堆页里过滤,过滤结果不准。
+const ACTIVE_STATUSES = ['pending', 'paid', 'preparing', 'ready'];
+
 // GET /api/merchant/orders - list ALL orders
 //
 // Query:
-//   status  - filter by order status (optional)
+//   status  - 单个状态 (pending/paid/.../completed/cancelled/failed)
+//             或虚拟值 'active' = pending|paid|preparing|ready 中任一
 //   search  - phone (digits → LIKE) or name (LIKE) (optional)
 //   limit   - page size (default 50 if provided, max 200; when omitted, returns all)
 //   offset  - page offset (default 0)
@@ -59,8 +64,14 @@ router.get('/orders', (req, res) => {
     const params = [];
 
     if (status) {
-      where.push('status = ?');
-      params.push(status);
+      if (status === 'active') {
+        // 虚拟状态: IN (...) 而不是 =
+        where.push(`status IN (${ACTIVE_STATUSES.map(() => '?').join(',')})`);
+        params.push(...ACTIVE_STATUSES);
+      } else {
+        where.push('status = ?');
+        params.push(status);
+      }
     }
 
     if (search) {
@@ -106,6 +117,39 @@ router.get('/orders', (req, res) => {
     res.json({ data: maskOrders(rows) });
   } catch (err) {
     console.error('GET /api/merchant/orders error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/merchant/orders/stats - aggregate counts for KPI cards
+//
+// Returns the total count for each KPI shown above the orders table:
+//   - active     : pending | paid | preparing | ready
+//   - preparing  : only 'preparing'
+//   - ready      : only 'ready' (waiting for pickup)
+//   - today      : any status, but created_at is today (localtime)
+//
+// Done in a single SQL round-trip with conditional aggregation.
+router.get('/orders/stats', (req, res) => {
+  try {
+    const row = db.prepare(`
+      SELECT
+        SUM(CASE WHEN status IN ('pending','paid','preparing','ready') THEN 1 ELSE 0 END) AS active,
+        SUM(CASE WHEN status = 'preparing' THEN 1 ELSE 0 END) AS preparing,
+        SUM(CASE WHEN status = 'ready' THEN 1 ELSE 0 END) AS ready,
+        SUM(CASE WHEN substr(created_at, 1, 10) = date('now', 'localtime') THEN 1 ELSE 0 END) AS today
+      FROM orders
+    `).get();
+    res.json({
+      data: {
+        active: row.active || 0,
+        preparing: row.preparing || 0,
+        ready: row.ready || 0,
+        today: row.today || 0
+      }
+    });
+  } catch (err) {
+    console.error('GET /api/merchant/orders/stats error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

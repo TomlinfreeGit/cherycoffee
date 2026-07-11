@@ -29,7 +29,7 @@ const NEXT_STATUS: Partial<Record<Order['status'], { status: Order['status']; la
   ready: [{ status: 'completed', label: '已取餐', primary: true }]
 };
 
-const ORDER_PAGE_SIZE = 50;
+const ORDER_PAGE_SIZE = 10;
 
 export default function OrdersPage() {
   const [filter, setFilter] = useState<FilterStatus>('active');
@@ -37,6 +37,8 @@ export default function OrdersPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  // 顶部 KPI 卡片:由独立接口 /orders/stats 提供,与分页 filter 独立
+  const [stats, setStats] = useState({ active: 0, preparing: 0, ready: 0, today: 0 });
 
   // 500ms 去抖后,再触发后端查询 (避免每次按键都拉接口)
   useEffect(() => {
@@ -44,14 +46,22 @@ export default function OrdersPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // 分页列表:每页 50 条,滚到底自动加载下一页
+  // filter 翻译:前端状态值 → 后端 status 参数
+  //   'active' 后端翻译为 IN (...) ;'all' 不传 ;其他单值透传
+  const apiStatus = filter === 'all' ? undefined : filter;
+
+  // 分页列表:每页 10 条,滚到底自动加载下一页
+  // filter 和 search 都进 deps,任何一项变化都会重置到第一页
   const list = usePagedList<Order>({
     pageSize: ORDER_PAGE_SIZE,
-    deps: [search],
+    deps: [search, filter],
     fetch: async (limit, offset) => {
-      const res = await api.listOrders({ search: search || undefined, limit, offset });
-      // 后端可能返回旧格式 { data: [...] } 或新格式 { data, total, hasMore }
-      // 做个稳健的类型适配
+      const res = await api.listOrders({
+        status: apiStatus,
+        search: search || undefined,
+        limit,
+        offset
+      });
       if (Array.isArray((res as any).data) && typeof (res as any).hasMore === 'boolean') {
         return res as any;
       }
@@ -61,30 +71,41 @@ export default function OrdersPage() {
   });
   const orders = list.items;
 
-  // 自动刷新:有 "进行中" 订单时,每 5s 拉第一页 (因为新订单会进来 / 状态会变)
+  // 顶部 KPI 卡片独立拉取 (不受 filter/search/分页影响)
+  const refreshStats = useCallback(async () => {
+    try {
+      const res = await api.getOrderStats();
+      setStats(res.data);
+    } catch {
+      // 静默忽略 KPI 加载错误,不影响列表
+    }
+  }, []);
+  useEffect(() => {
+    refreshStats();
+  }, [refreshStats]);
+
+  // 自动刷新:每 5s 同时刷新列表第一页 + 统计(因为状态会变)
   // 已加载第二页之后的页面不刷新,避免跳到顶部让用户丢失阅读位置
   const loadRef = useRef(list.refresh);
   loadRef.current = list.refresh;
   useEffect(() => {
     if (!autoRefresh) return;
-    const t = setInterval(() => loadRef.current(), 5000);
+    const t = setInterval(() => {
+      loadRef.current();
+      refreshStats();
+    }, 5000);
     return () => clearInterval(t);
-  }, [autoRefresh]);
+  }, [autoRefresh, refreshStats]);
 
-  const filtered = (() => {
-    if (filter === 'all') return orders;
-    if (filter === 'active')
-      return orders.filter((o) =>
-        ['pending', 'paid', 'preparing', 'ready'].includes(o.status)
-      );
-    return orders.filter((o) => o.status === filter);
-  })();
+  // 后端已经按 status 过滤过了,这里直接用 items 渲染
+  const filtered = orders;
 
   const handleStatusUpdate = async (order: Order, newStatus: Order['status']) => {
     try {
       await api.updateOrderStatus(order.id, newStatus);
       showToast(`订单 ${order.pickup_number} 已更新`, 'success');
       list.refresh();
+      refreshStats();
       if (selected && selected.id === order.id) {
         const updated = await api.getOrder(order.id);
         setSelected(updated.data);
@@ -105,16 +126,8 @@ export default function OrdersPage() {
     }
   };
 
-  const counts = {
-    active: orders.filter((o) => ['pending', 'paid', 'preparing', 'ready'].includes(o.status)).length,
-    ready: orders.filter((o) => o.status === 'ready').length,
-    preparing: orders.filter((o) => o.status === 'preparing').length,
-    today: orders.filter((o) => {
-      const d = new Date(o.created_at);
-      const now = new Date();
-      return d.toDateString() === now.toDateString();
-    }).length
-  };
+  // 顶部 KPI 数字来自 /api/merchant/orders/stats,不是本地计算
+  const counts = stats;
 
   return (
     <div>
@@ -189,12 +202,10 @@ export default function OrdersPage() {
         ) : (
           <>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
-              共 {list.total} 单，当前显示 {filtered.length} 单
-              {filter !== 'all' && list.hasMore && (
-                <span style={{ marginLeft: 8, color: 'var(--warning)' }}>
-                  （注：当前过滤可能隐藏部分已加载的订单，继续滚到底会拉取更多原始数据）
-                </span>
+              {filter !== 'all' && (
+                <span>当前过滤: “{FILTER_OPTIONS.find((o) => o.value === filter)?.label}” · </span>
               )}
+              共 {list.total} 单，当前显示 {filtered.length} 单
             </div>
             <table>
             <thead>
