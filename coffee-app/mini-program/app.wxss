@@ -18,6 +18,10 @@ page {
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   font-size: 28rpx;
+
+  /* Fill the available viewport above the tabBar so children using
+     position:absolute + inset:0 (e.g. menu page) can resolve height: 100%. */
+  height: 100%;
 }
 
 .container {

@@ -1,19 +1,35 @@
 /* filepath: coffee-app/mini-program/pages/menu/menu.wxss */
+/* ============================================================================
+ * IMPORTANT — 微信小程序布局说明
+ * ----------------------------------------------------------------------------
+ * 微信里 `page` 元素的默认高度等于"窗口内容区",而 tabBar 是叠在页面下方的,
+ * `100vh` 在小程序里通常指"可视窗口高度"而非"页面可用高度"。
+ *
+ * 因此我们使用 `position: absolute; inset: 0` 让 .page-menu 自动填满
+ * WeChat 框架给我们的页面区域,然后用 flex 把两个滚动区按比例分配剩余空间。
+ *
+ * 浮动购物车栏 .bottom-bar 用 `position: absolute` 叠在底部,这样不会从
+ * 文档流里"挤掉"任何空间——左右两个 scroll-view 高度仍然能占满。
+ * ============================================================================ */
+
 .page-menu {
+  position: absolute;
+  inset: 0;
   display: flex;
-  height: 100vh;
+  flex-direction: row;
   background: var(--bg);
-  padding-bottom: 140rpx;
-  box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* ─── 左侧分类栏 ─────────────────────────────────── */
 .category-sidebar {
+  /* Fixed width sidebar — scroll-view 内部高度由父元素撑开 */
   width: 200rpx;
-  height: 100%;
+  flex: 0 0 200rpx;
   background: var(--panel);
   border-right: 1rpx solid var(--border);
-  flex-shrink: 0;
+  /* 关键:scroll-view 需要确定高度。 用 `height: 100%` 让其填满 flex 父容器的高度 */
+  height: 100%;
 }
 
 .sidebar-item {
@@ -51,9 +67,11 @@
 
 /* ─── 右侧商品列表 ─────────────────────────────────── */
 .product-area {
+  /* 占据除左侧 200rpx 外的全部空间 */
   flex: 1;
+  width: calc(100% - 200rpx);
   height: 100%;
-  padding: 16rpx;
+  padding: 16rpx 16rpx 24rpx;
   box-sizing: border-box;
 }
 
@@ -169,8 +187,9 @@
 }
 
 /* ─── 浮动购物车栏 ─────────────────────────────────── */
+/* 用 absolute 定位让它浮在底部,不会把内容挤下去 */
 .bottom-bar {
-  position: fixed;
+  position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
@@ -228,7 +247,7 @@
 
 /* ─── 商品详情弹窗 ─────────────────────────────────── */
 .detail-mask {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
   display: flex;
@@ -248,7 +267,7 @@
   background: var(--panel);
   border-radius: 24rpx 24rpx 0 0;
   padding-bottom: env(safe-area-inset-bottom);
-  max-height: 80vh;
+  max-height: 80%;
   display: flex;
   flex-direction: column;
   animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
