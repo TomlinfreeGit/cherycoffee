@@ -1,6 +1,20 @@
 /* filepath: coffee-app/mini-program/pages/order-list/order-list.wxss */
 .page-list {
   padding: 24rpx;
+  /* 让里面的 .order-scroll 可以用 height:100% 计算出可用高度 */
+  display: flex;
+  flex-direction: column;
+  /* 页面级使用 100vh,scroll-view 占用剩下空间以便触底 */
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* scroll-view 填充剩余高度,只有它能滚动 */
+.order-scroll {
+  flex: 1 1 auto;
+  /* 必须给个明确高度才能在微信里触发 scrolltolower; 用 calc 减去顶部卡片 */
+  height: calc(100vh - 132rpx); /* 132rpx = 顶卡 (108rpx) + 间距 (24rpx) */
+  box-sizing: border-box;
 }
 
 .profile-card {
@@ -87,4 +101,26 @@
   font-size: 28rpx;
   font-weight: 600;
   color: var(--primary);
+}
+
+/* 列表底部状态 */
+.list-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 32rpx 0 24rpx;
+  font-size: 22rpx;
+  color: var(--muted);
+}
+.list-footer .muted {
+  color: var(--muted);
+}
+.footer-spinner {
+  font-size: 24rpx;
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

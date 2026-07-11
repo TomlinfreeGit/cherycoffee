@@ -12,31 +12,66 @@
     <text class="profile-card-arrow">›</text>
   </view>
 
-  <view wx:if="{{loading && orders.length === 0}}" class="empty">
-    <text>加载中...</text>
-  </view>
+  <!--
+    整个订单列表放进 scroll-view,这样可以监听 bindscrolltolower
+    实现滚到底自动加载下一页。
+    enhanced + show-scrollbar 让原生滚动体验更好。
+  -->
+  <scroll-view
+    class="order-scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    bindscrolltolower="onScrollLower"
+    lower-threshold="80"
+  >
 
-  <view wx:elif="{{orders.length === 0}}" class="empty">
-    <text class="empty-icon">📋</text>
-    <text>暂无订单</text>
-  </view>
-
-  <view wx:else class="order-list">
-    <view
-      wx:for="{{orders}}"
-      wx:key="id"
-      class="order-card"
-      data-id="{{item.id}}"
-      bindtap="viewDetail"
-    >
-      <view class="order-header">
-        <view class="pickup-number">{{item.pickup_number}}</view>
-        <view class="{{item.statusClass}}">{{item.statusLabel}}</view>
-      </view>
-      <view class="order-meta">
-        <text class="time">{{item.dateText}} {{item.timeText}}</text>
-        <text class="price total">{{item.total_amount}}</text>
-      </view>
+    <!-- 初次加载 (orders 还没数据时) -->
+    <view wx:if="{{loading && orders.length === 0}}" class="empty">
+      <text>加载中...</text>
     </view>
-  </view>
+
+    <!-- 加载完了但确实没有订单 -->
+    <view wx:elif="{{orders.length === 0}}" class="empty">
+      <text class="empty-icon">📋</text>
+      <text>暂无订单</text>
+    </view>
+
+    <!-- 有订单:渲染列表 -->
+    <block wx:else>
+      <view class="order-list">
+        <view
+          wx:for="{{orders}}"
+          wx:key="id"
+          class="order-card"
+          data-id="{{item.id}}"
+          bindtap="viewDetail"
+        >
+          <view class="order-header">
+            <view class="pickup-number">{{item.pickup_number}}</view>
+            <view class="{{item.statusClass}}">{{item.statusLabel}}</view>
+          </view>
+          <view class="order-meta">
+            <text class="time">{{item.dateText}} {{item.timeText}}</text>
+            <text class="price total">{{item.total_amount}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 列表底部状态:加载中 / 没有更多 / 全部已加载 -->
+      <view class="list-footer">
+        <block wx:if="{{loadingMore}}">
+          <text class="footer-spinner">⏳</text>
+          <text>加载中…</text>
+        </block>
+        <block wx:elif="{{!hasMore && total > 0}}">
+          <text class="muted">— 共 {{total}} 单，已显示全部 —</text>
+        </block>
+        <block wx:elif="{{hasMore && !loadingMore}}">
+          <text class="muted">上拉加载更多…</text>
+        </block>
+      </view>
+    </block>
+
+  </scroll-view>
 </view>

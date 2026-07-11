@@ -74,10 +74,16 @@ Page({
       ]);
 
       const categories = catRes.data;
+      // 先把服务端原始字段拷过来,再叠上 imageUrl/icon/折扣字段。
+      // 注意:必须在这里调 priceWithDiscount() 给每件商品加上
+      // discounted_price + has_discount,WXML 直接读这两个字段,
+      // 漏掉它们会让价格显示为空(典型场景:下拉刷新后)。
       const products = prodRes.data.map((p) => ({
         ...p,
         imageUrl: api.resolveImageUrl(p.image_url),
-        icon: this.iconForCategory(p.category)
+        icon: this.iconForCategory(p.category),
+        discounted_price: app.priceWithDiscount(p.price),
+        has_discount: app.priceWithDiscount(p.price) < p.price - 0.001
       }));
 
       // 默认选中第一个分类(若当前已选中且仍存在则保留)

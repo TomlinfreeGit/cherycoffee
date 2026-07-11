@@ -162,9 +162,20 @@ module.exports = {
     await ensureLoggedIn();
     return request(`/orders/${id}`, 'GET');
   },
-  async listOrders(status) {
+  async listOrders(params) {
     await ensureLoggedIn();
-    return request(`/orders${status ? '?status=' + status : ''}`, 'GET');
+    // Backwards-compatible: passing a string is treated as `status`.
+    let q = {};
+    if (typeof params === 'string') {
+      q = { status: params };
+    } else if (params && typeof params === 'object') {
+      q = params;
+    }
+    const qs = Object.keys(q)
+      .filter((k) => q[k] !== undefined && q[k] !== null && q[k] !== '')
+      .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(q[k])}`)
+      .join('&');
+    return request(`/orders${qs ? '?' + qs : ''}`, 'GET');
   },
   async updateOrderStatus(id, status) {
     await ensureLoggedIn();

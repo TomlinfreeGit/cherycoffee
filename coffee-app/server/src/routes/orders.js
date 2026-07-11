@@ -129,30 +129,67 @@ router.post('/', optionalCustomerAuth, (req, res) => {
 
 // GET /api/orders - list orders
 // Customers can only see their own orders (filtered by openid)
+//
+// Query params:
+//   status  - filter by order status (optional)
+//   limit   - page size (default 20 if provided, max 100; when omitted, returns all rows)
+//   offset  - page offset, default 0
+//
+// Response shape (when limit is provided):
+//   { data: [...], total, limit, offset, hasMore }
+// When limit is omitted (backward compatible):
+//   { data: [...] }
 router.get('/', customerAuth, (req, res) => {
   try {
-    const { status, limit, scope } = req.query;
+    const { status, limit, offset, scope } = req.query;
 
     // Merchant-only scope (not implemented; reserved for future use)
     if (scope === 'all') {
       return res.status(403).json({ error: 'Forbidden: scope=all requires merchant auth' });
     }
 
-    let sql = 'SELECT * FROM orders WHERE openid = ?';
+    // Build WHERE clause
+    const where = ['openid = ?'];
     const params = [req.openid];
-
     if (status) {
-      sql += ' AND status = ?';
+      where.push('status = ?');
       params.push(status);
     }
+    const whereSql = ' WHERE ' + where.join(' AND ');
 
-    sql += ' ORDER BY created_at DESC';
-
-    if (limit) {
-      sql += ' LIMIT ?';
-      params.push(parseInt(limit, 10));
+    // Has the caller asked for pagination? We treat the request as paged
+    // when `limit` is present. Default page size = 20, max = 100.
+    const isPaged = limit !== undefined && limit !== '';
+    let pageSize = 20;
+    let pageOffset = 0;
+    if (isPaged) {
+      pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+      pageOffset = Math.max(0, parseInt(offset, 10) || 0);
     }
 
+    if (isPaged) {
+      // Total count for this filter (single round-trip query)
+      const countSql = 'SELECT COUNT(*) AS cnt FROM orders' + whereSql;
+      const total = db.prepare(countSql).get(...params).cnt;
+
+      const sql =
+        'SELECT * FROM orders' +
+        whereSql +
+        ' ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?';
+      const rows = db.prepare(sql).all(...params, pageSize, pageOffset);
+
+      return res.json({
+        data: rows,
+        total,
+        limit: pageSize,
+        offset: pageOffset,
+        hasMore: pageOffset + rows.length < total
+      });
+    }
+
+    // Legacy/unpaged response: keep returning the bare array for callers
+    // that haven't migrated yet (older mini-program versions, smoke tests).
+    const sql = 'SELECT * FROM orders' + whereSql + ' ORDER BY created_at DESC, id DESC';
     const rows = db.prepare(sql).all(...params);
     res.json({ data: rows });
   } catch (err) {

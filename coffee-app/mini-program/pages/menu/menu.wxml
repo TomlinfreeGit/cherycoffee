@@ -64,7 +64,12 @@
             <view class="product-desc" wx:if="{{item.description}}">{{item.description}}</view>
             <view class="product-bottom">
               <view class="product-price-line">
-                <text class="product-price price">{{item.discounted_price}}</text>
+                <!--
+                  兑底: discounted_price 可能在某些加载路径下未填充
+                  (例如商品列表刚拉回来还未走 applyDiscountToProducts)。
+                  使用 wx:if 兑底到原始价 item.price,避免出现空白。
+                -->
+                <text class="product-price price">{{item.discounted_price || item.price}}</text>
                 <text class="product-price-original" wx:if="{{item.has_discount}}">¥{{item.price}}</text>
               </view>
               <button

@@ -198,16 +198,18 @@
   font-weight: 700;
 }
 
-/* 价格行:支持折扣后价格 + 划线原价 */
+/* 价格行:支持折扣后价格 + 划线原价。
+   重点:不要设 overflow:hidden,否则划线原价会被裁掉。
+   价格行自然撑开,按钮靠 flex:0 0 auto 锁定宽度不拉伸即可。 */
 .product-price-line {
   display: flex;
   align-items: baseline;
   margin-right: 16rpx;
-  min-width: 0;
+  /* 允许子项超出该行自然宽度,即使超过 .product-info 的可用空间 */
   flex: 1 1 auto;
-  overflow: hidden;
+  min-width: 0;
 }
-/* 按钮容器:固定为小尺寸，不随价格拉伸 */
+/* 按钮容器:固定为小尺寸,不被 flex 拉伸 */
 .product-bottom .btn {
   /* 覆盖全局 .btn 的 padding,让按钮紧一点 */
   padding: 6rpx 18rpx;
@@ -224,7 +226,9 @@
   color: #999;
   text-decoration: line-through;
   margin-left: 8rpx;
-  flex: 0 0 auto;
+  /* 保持原文本完整,不裁剪 */
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .detail-price-wrap {
   display: flex;

@@ -1,197 +1,234 @@
-◇ injected env (6) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (6) from .env // tip: ⌘ override existing { override: true }
 ✓ Server running on http://0.0.0.0:3000
   Local:   http://localhost:3000/api/health
   Network: http://0.0.0.0:3000/api/health
   LAN:     http://192.168.1.29:3000, http://192.168.198.1:3000, http://192.168.200.1:3000, http://172.24.144.1:3000
-[2026-07-11T13:33:04.772Z] POST /api/sessions
-[2026-07-11T13:33:04.781Z] GET /api/health
-[2026-07-11T13:33:04.783Z] GET /api/products
-[2026-07-11T13:33:04.785Z] GET /api/products?category=%E6%84%8F%E5%BC%8F%E5%92%96%E5%95%A1
-[2026-07-11T13:33:04.786Z] GET /api/products/1
-[2026-07-11T13:33:04.788Z] GET /api/products/9999
-[2026-07-11T13:33:04.789Z] POST /api/products
-[2026-07-11T13:33:04.792Z] PATCH /api/products/30
-[2026-07-11T13:33:04.794Z] PATCH /api/products/30
-[2026-07-11T13:33:04.797Z] GET /api/products?availableOnly=true
-[2026-07-11T13:33:04.798Z] DELETE /api/products/30
-[2026-07-11T13:33:04.800Z] POST /api/orders
-[2026-07-11T13:33:04.804Z] GET /api/orders/92
-[2026-07-11T13:33:04.805Z] GET /api/orders
-[2026-07-11T13:33:04.806Z] PATCH /api/orders/92/status
-[2026-07-11T13:33:04.808Z] PATCH /api/orders/92/status
-[2026-07-11T13:33:04.809Z] PATCH /api/merchant/orders/92/status
-[2026-07-11T13:33:04.812Z] PATCH /api/merchant/orders/92/status
-[2026-07-11T13:33:04.814Z] PATCH /api/merchant/orders/92/status
-[LEVEL] openid=mock_openid_3840... → level 1 (2 orders)
-[2026-07-11T13:33:04.817Z] POST /api/orders
-[2026-07-11T13:33:09.877Z] POST /api/sessions
-[2026-07-11T13:33:09.882Z] GET /api/products?category=%E6%84%8F%E5%BC%8F%E5%92%96%E5%95%A1
-[2026-07-11T13:33:09.884Z] POST /api/orders
-[2026-07-11T13:33:09.887Z] GET /api/merchant/orders?status=pending
-[2026-07-11T13:33:09.889Z] PATCH /api/orders/94/status
-[2026-07-11T13:33:09.891Z] PATCH /api/merchant/orders/94/status
-[2026-07-11T13:33:09.893Z] PATCH /api/merchant/orders/94/status
-[2026-07-11T13:33:09.896Z] PATCH /api/merchant/orders/94/status
-[LEVEL] openid=mock_openid_9602... → level 1 (2 orders)
-[2026-07-11T13:33:09.900Z] POST /api/orders
-[2026-07-11T13:33:09.901Z] POST /api/orders
-[2026-07-11T13:33:09.902Z] POST /api/orders
-[2026-07-11T13:33:09.906Z] POST /api/orders
-[2026-07-11T13:33:09.909Z] POST /api/orders
-[2026-07-11T13:33:09.912Z] PATCH /api/orders/97/status
-[2026-07-11T13:33:09.914Z] PATCH /api/orders/97/status
-[2026-07-11T13:33:09.915Z] GET /api/orders/94
-[2026-07-11T13:33:09.978Z] GET /api/merchant/users
-[2026-07-11T13:33:09.982Z] GET /api/merchant/users
-[2026-07-11T13:33:09.985Z] POST /api/sessions
-[2026-07-11T13:33:09.987Z] POST /api/sessions
-[2026-07-11T13:33:09.989Z] POST /api/sessions
-[2026-07-11T13:33:09.991Z] PATCH /api/users/me
-[2026-07-11T13:33:09.994Z] POST /api/users/phone-plain
-[users] plain phone set for openid=mock_openid_d92a... (unverified)
-[2026-07-11T13:33:09.997Z] PATCH /api/users/me
-[2026-07-11T13:33:10.000Z] POST /api/users/phone-plain
-[users] plain phone set for openid=mock_openid_b394... (unverified)
-[2026-07-11T13:33:10.002Z] PATCH /api/users/me
-[2026-07-11T13:33:10.007Z] GET /api/merchant/users
-[2026-07-11T13:33:10.009Z] GET /api/merchant/users?search=%E5%BC%A0%E4%B8%89
-[2026-07-11T13:33:10.010Z] GET /api/merchant/users?search=13800138001
-[2026-07-11T13:33:10.012Z] GET /api/merchant/users?has_phone=true
-[2026-07-11T13:33:10.013Z] GET /api/merchant/users?has_phone=false
-[2026-07-11T13:33:10.015Z] GET /api/merchant/users?search=13800138001
-[2026-07-11T13:33:10.016Z] GET /api/merchant/users/mock_openid_d92af6ffda9c297a
-[2026-07-11T13:33:10.017Z] GET /api/merchant/users/no-such-openid
-[2026-07-11T13:33:10.018Z] GET /api/products
-[2026-07-11T13:33:10.019Z] POST /api/orders
-[2026-07-11T13:33:10.021Z] GET /api/merchant/orders/98
-[2026-07-11T13:33:10.022Z] DELETE /api/merchant/users/mock_openid_d92af6ffda9c297a
-[AUDIT] Merchant unknown deleted user mock_openid_d92af6ffda9c297a (orders anonymized: 1, sessions: 1) at 2026-07-11T13:33:10.023Z
-[2026-07-11T13:33:10.024Z] GET /api/merchant/users/mock_openid_d92af6ffda9c297a
-[2026-07-11T13:33:10.025Z] GET /api/users/me
-[2026-07-11T13:33:10.025Z] GET /api/merchant/orders/98
-[2026-07-11T13:33:10.026Z] DELETE /api/merchant/users/mock_openid_d92af6ffda9c297a
-[2026-07-11T13:33:10.027Z] DELETE /api/merchant/users/mock_openid_b3947e7164eccd03
-[2026-07-11T13:33:10.028Z] GET /api/merchant/users/mock_openid_b3947e7164eccd03
-[2026-07-11T13:33:10.029Z] DELETE /api/merchant/users/mock_openid_b3947e7164eccd03
-[AUDIT] Merchant unknown deleted user mock_openid_b3947e7164eccd03 (orders anonymized: 0, sessions: 1) at 2026-07-11T13:33:10.030Z
-[2026-07-11T13:33:10.031Z] DELETE /api/merchant/users/mock_openid_7e69921ea4be69c0
-[AUDIT] Merchant unknown deleted user mock_openid_7e69921ea4be69c0 (orders anonymized: 0, sessions: 1) at 2026-07-11T13:33:10.032Z
-[2026-07-11T13:33:10.113Z] GET /api/settings
-[2026-07-11T13:33:10.117Z] PATCH /api/merchant/settings
-[2026-07-11T13:33:10.118Z] PATCH /api/merchant/settings
-[2026-07-11T13:33:10.120Z] PATCH /api/merchant/settings
-[2026-07-11T13:33:10.121Z] PATCH /api/merchant/settings
-[2026-07-11T13:33:10.122Z] PATCH /api/merchant/settings
-[2026-07-11T13:33:10.123Z] PATCH /api/merchant/settings
-[2026-07-11T13:33:10.125Z] POST /api/sessions
-[2026-07-11T13:33:10.126Z] GET /api/users/me?include=level
-[2026-07-11T13:33:10.129Z] GET /api/products
-[2026-07-11T13:33:10.131Z] POST /api/orders
-[2026-07-11T13:33:10.133Z] POST /api/orders
-[2026-07-11T13:33:10.136Z] POST /api/orders
-[2026-07-11T13:33:10.139Z] POST /api/orders
-[2026-07-11T13:33:10.141Z] POST /api/orders
-[2026-07-11T13:33:10.143Z] POST /api/orders
-[2026-07-11T13:33:10.147Z] POST /api/orders
-[2026-07-11T13:33:10.149Z] POST /api/orders
-[2026-07-11T13:33:10.152Z] POST /api/orders
-[2026-07-11T13:33:10.154Z] POST /api/orders
-[2026-07-11T13:33:10.157Z] PATCH /api/merchant/orders/99/status
-[2026-07-11T13:33:10.158Z] PATCH /api/merchant/orders/99/status
-[2026-07-11T13:33:10.160Z] PATCH /api/merchant/orders/99/status
-[2026-07-11T13:33:10.162Z] PATCH /api/merchant/orders/99/status
-[LEVEL] openid=mock_openid_23ac... → level 1 (1 orders)
-[2026-07-11T13:33:10.165Z] PATCH /api/merchant/orders/100/status
-[2026-07-11T13:33:10.166Z] PATCH /api/merchant/orders/100/status
-[2026-07-11T13:33:10.168Z] PATCH /api/merchant/orders/100/status
-[2026-07-11T13:33:10.169Z] PATCH /api/merchant/orders/100/status
-[LEVEL] openid=mock_openid_23ac... → level 1 (2 orders)
-[2026-07-11T13:33:10.172Z] PATCH /api/merchant/orders/101/status
-[2026-07-11T13:33:10.174Z] PATCH /api/merchant/orders/101/status
-[2026-07-11T13:33:10.175Z] PATCH /api/merchant/orders/101/status
-[2026-07-11T13:33:10.177Z] PATCH /api/merchant/orders/101/status
-[LEVEL] openid=mock_openid_23ac... → level 1 (3 orders)
-[2026-07-11T13:33:10.180Z] PATCH /api/merchant/orders/102/status
-[2026-07-11T13:33:10.181Z] PATCH /api/merchant/orders/102/status
-[2026-07-11T13:33:10.183Z] PATCH /api/merchant/orders/102/status
-[2026-07-11T13:33:10.185Z] PATCH /api/merchant/orders/102/status
-[LEVEL] openid=mock_openid_23ac... → level 1 (4 orders)
-[2026-07-11T13:33:10.187Z] PATCH /api/merchant/orders/103/status
-[2026-07-11T13:33:10.189Z] PATCH /api/merchant/orders/103/status
-[2026-07-11T13:33:10.190Z] PATCH /api/merchant/orders/103/status
-[2026-07-11T13:33:10.192Z] PATCH /api/merchant/orders/103/status
-[LEVEL] openid=mock_openid_23ac... → level 1 (5 orders)
-[2026-07-11T13:33:10.195Z] PATCH /api/merchant/orders/104/status
-[2026-07-11T13:33:10.196Z] PATCH /api/merchant/orders/104/status
-[2026-07-11T13:33:10.198Z] PATCH /api/merchant/orders/104/status
-[2026-07-11T13:33:10.200Z] PATCH /api/merchant/orders/104/status
-[LEVEL] openid=mock_openid_23ac... → level 1 (6 orders)
-[2026-07-11T13:33:10.205Z] PATCH /api/merchant/orders/105/status
-[2026-07-11T13:33:10.207Z] PATCH /api/merchant/orders/105/status
-[2026-07-11T13:33:10.208Z] PATCH /api/merchant/orders/105/status
-[2026-07-11T13:33:10.210Z] PATCH /api/merchant/orders/105/status
-[LEVEL] openid=mock_openid_23ac... → level 1 (7 orders)
-[2026-07-11T13:33:10.213Z] PATCH /api/merchant/orders/106/status
-[2026-07-11T13:33:10.215Z] PATCH /api/merchant/orders/106/status
-[2026-07-11T13:33:10.216Z] PATCH /api/merchant/orders/106/status
-[2026-07-11T13:33:10.218Z] PATCH /api/merchant/orders/106/status
-[LEVEL] openid=mock_openid_23ac... → level 1 (8 orders)
-[2026-07-11T13:33:10.220Z] PATCH /api/merchant/orders/107/status
-[2026-07-11T13:33:10.221Z] PATCH /api/merchant/orders/107/status
-[2026-07-11T13:33:10.223Z] PATCH /api/merchant/orders/107/status
-[2026-07-11T13:33:10.224Z] PATCH /api/merchant/orders/107/status
-[LEVEL] openid=mock_openid_23ac... → level 1 (9 orders)
-[2026-07-11T13:33:10.226Z] PATCH /api/merchant/orders/108/status
-[2026-07-11T13:33:10.228Z] PATCH /api/merchant/orders/108/status
-[2026-07-11T13:33:10.230Z] PATCH /api/merchant/orders/108/status
-[2026-07-11T13:33:10.231Z] PATCH /api/merchant/orders/108/status
-[LEVEL] openid=mock_openid_23ac... → level 2 (10 orders)
-[2026-07-11T13:33:10.234Z] GET /api/users/me?include=level
-[2026-07-11T13:33:10.235Z] POST /api/orders
-[2026-07-11T13:33:10.238Z] GET /api/merchant/users
-[2026-07-11T13:33:10.240Z] GET /api/merchant/users/mock_openid_23acd2f5e0172c14
-[2026-07-11T13:33:10.241Z] POST /api/orders
-[2026-07-11T13:33:10.243Z] GET /api/users/me?include=level
-[2026-07-11T13:33:10.244Z] POST /api/orders
-[2026-07-11T13:33:10.247Z] PATCH /api/merchant/orders/111/status
-[2026-07-11T13:33:10.248Z] PATCH /api/merchant/orders/111/status
-[2026-07-11T13:33:10.250Z] PATCH /api/merchant/orders/111/status
-[2026-07-11T13:33:10.251Z] PATCH /api/merchant/orders/111/status
-[LEVEL] openid=mock_openid_23ac... → level 2 (11 orders)
-[2026-07-11T13:33:10.254Z] GET /api/users/me?include=level
-[2026-07-11T13:33:10.255Z] PATCH /api/merchant/settings
-[2026-07-11T13:35:10.194Z] GET /api/health
-[2026-07-11T13:35:10.196Z] GET /api/settings
-[2026-07-11T13:35:11.931Z] GET /uploads/1782700437016-7fb265a9d023fb80.jpg
-[2026-07-11T13:35:11.934Z] GET /uploads/1782706747744-4d804d89ad3bb6a7.jpeg
-[2026-07-11T13:35:11.936Z] GET /uploads/1783128171648-e13ad627635e78db.jpeg
-[2026-07-11T13:35:11.937Z] GET /uploads/1783164457409-81f9ad9fd7edbe74.jpeg
-[2026-07-11T13:35:15.512Z] POST /api/sessions
-[2026-07-11T13:35:15.522Z] POST /api/sessions
-[2026-07-11T13:35:15.528Z] GET /api/users/me
-[2026-07-11T13:35:15.532Z] GET /api/orders
-[2026-07-11T13:35:22.167Z] GET /api/users/me
-[2026-07-11T13:35:22.173Z] GET /api/users/me?include=level
-[2026-07-11T13:41:35.703Z] GET /api/health
-[2026-07-11T13:41:35.703Z] GET /api/settings
-[2026-07-11T13:41:36.843Z] GET /uploads/1782700437016-7fb265a9d023fb80.jpg
-[2026-07-11T13:41:36.844Z] GET /uploads/1782706747744-4d804d89ad3bb6a7.jpeg
-[2026-07-11T13:41:36.845Z] GET /uploads/1783128171648-e13ad627635e78db.jpeg
-[2026-07-11T13:41:36.845Z] GET /uploads/1783164457409-81f9ad9fd7edbe74.jpeg
-[2026-07-11T13:41:39.206Z] POST /api/sessions
-[2026-07-11T13:41:39.210Z] POST /api/sessions
-[2026-07-11T13:41:39.217Z] GET /api/users/me
-[2026-07-11T13:41:39.221Z] GET /api/orders
-[2026-07-11T13:41:40.232Z] GET /api/users/me
-[2026-07-11T13:41:40.234Z] GET /api/users/me?include=level
-[2026-07-11T13:41:47.121Z] PATCH /api/users/me
-[2026-07-11T13:41:55.284Z] PATCH /api/users/me
-[2026-07-11T13:42:48.384Z] GET /api/orders
-[2026-07-11T13:42:48.386Z] GET /api/users/me
-[2026-07-11T13:42:51.581Z] GET /api/users/me
-[2026-07-11T13:42:51.583Z] GET /api/users/me?include=level
-[2026-07-11T13:42:54.872Z] GET /api/orders
-[2026-07-11T13:42:54.879Z] GET /api/users/me
-[2026-07-11T13:44:33.339Z] GET /api/orders
-[2026-07-11T13:44:33.343Z] GET /api/users/me
-[2026-07-11T13:44:35.374Z] GET /api/users/me?include=level
+[2026-07-11T14:03:40.387Z] POST /api/sessions
+[2026-07-11T14:03:40.396Z] POST /api/sessions
+[2026-07-11T14:03:40.399Z] GET /api/products
+[2026-07-11T14:03:40.402Z] POST /api/orders
+[2026-07-11T14:03:40.407Z] POST /api/orders
+[2026-07-11T14:03:40.410Z] POST /api/orders
+[2026-07-11T14:03:40.413Z] POST /api/orders
+[2026-07-11T14:03:40.416Z] POST /api/orders
+[2026-07-11T14:03:40.419Z] POST /api/orders
+[2026-07-11T14:03:40.424Z] POST /api/orders
+[2026-07-11T14:03:40.427Z] POST /api/orders
+[2026-07-11T14:03:40.430Z] POST /api/orders
+[2026-07-11T14:03:40.433Z] POST /api/orders
+[2026-07-11T14:03:40.436Z] POST /api/orders
+[2026-07-11T14:03:40.438Z] POST /api/orders
+[2026-07-11T14:03:40.441Z] POST /api/orders
+[2026-07-11T14:03:40.444Z] POST /api/orders
+[2026-07-11T14:03:40.447Z] POST /api/orders
+[2026-07-11T14:03:40.449Z] POST /api/orders
+[2026-07-11T14:03:40.453Z] POST /api/orders
+[2026-07-11T14:03:40.456Z] POST /api/orders
+[2026-07-11T14:03:40.459Z] POST /api/orders
+[2026-07-11T14:03:40.462Z] POST /api/orders
+[2026-07-11T14:03:40.464Z] POST /api/orders
+[2026-07-11T14:03:40.467Z] POST /api/orders
+[2026-07-11T14:03:40.470Z] POST /api/orders
+[2026-07-11T14:03:40.473Z] POST /api/orders
+[2026-07-11T14:03:40.476Z] POST /api/orders
+[2026-07-11T14:03:40.479Z] POST /api/orders
+[2026-07-11T14:03:40.482Z] POST /api/orders
+[2026-07-11T14:03:40.484Z] POST /api/orders
+[2026-07-11T14:03:40.487Z] GET /api/orders
+[2026-07-11T14:03:40.489Z] GET /api/orders?limit=10&offset=0
+[2026-07-11T14:03:40.491Z] GET /api/orders?limit=10&offset=0
+[2026-07-11T14:03:40.492Z] GET /api/orders?limit=10&offset=10
+[2026-07-11T14:03:40.493Z] GET /api/orders?limit=10&offset=20
+[2026-07-11T14:03:40.494Z] PATCH /api/merchant/orders/112/status
+[2026-07-11T14:03:40.496Z] PATCH /api/merchant/orders/112/status
+[2026-07-11T14:03:40.498Z] PATCH /api/merchant/orders/112/status
+[2026-07-11T14:03:40.500Z] PATCH /api/merchant/orders/112/status
+[LEVEL] openid=mock_openid_464d... → level 1 (1 orders)
+[2026-07-11T14:03:40.504Z] PATCH /api/merchant/orders/113/status
+[2026-07-11T14:03:40.506Z] PATCH /api/merchant/orders/113/status
+[2026-07-11T14:03:40.507Z] PATCH /api/merchant/orders/113/status
+[2026-07-11T14:03:40.509Z] PATCH /api/merchant/orders/113/status
+[LEVEL] openid=mock_openid_464d... → level 1 (2 orders)
+[2026-07-11T14:03:40.513Z] PATCH /api/merchant/orders/114/status
+[2026-07-11T14:03:40.515Z] PATCH /api/merchant/orders/114/status
+[2026-07-11T14:03:40.516Z] PATCH /api/merchant/orders/114/status
+[2026-07-11T14:03:40.518Z] PATCH /api/merchant/orders/114/status
+[LEVEL] openid=mock_openid_464d... → level 1 (3 orders)
+[2026-07-11T14:03:40.522Z] PATCH /api/merchant/orders/115/status
+[2026-07-11T14:03:40.524Z] PATCH /api/merchant/orders/115/status
+[2026-07-11T14:03:40.526Z] PATCH /api/merchant/orders/115/status
+[2026-07-11T14:03:40.527Z] PATCH /api/merchant/orders/115/status
+[LEVEL] openid=mock_openid_464d... → level 1 (4 orders)
+[2026-07-11T14:03:40.531Z] PATCH /api/merchant/orders/116/status
+[2026-07-11T14:03:40.532Z] PATCH /api/merchant/orders/116/status
+[2026-07-11T14:03:40.534Z] PATCH /api/merchant/orders/116/status
+[2026-07-11T14:03:40.536Z] PATCH /api/merchant/orders/116/status
+[LEVEL] openid=mock_openid_464d... → level 1 (5 orders)
+[2026-07-11T14:03:40.540Z] GET /api/orders?limit=10&offset=0&status=completed
+[2026-07-11T14:03:40.541Z] GET /api/orders?limit=50
+[2026-07-11T14:03:40.542Z] GET /api/orders?limit=50
+[2026-07-11T14:03:40.543Z] GET /api/orders?limit=999
+[2026-07-11T14:03:40.544Z] GET /api/orders?limit=10&offset=1000
+[2026-07-11T14:03:40.545Z] POST /api/sessions
+[2026-07-11T14:03:40.547Z] GET /api/orders?limit=10
+[2026-07-11T14:03:48.249Z] POST /api/sessions
+[2026-07-11T14:03:48.254Z] GET /api/health
+[2026-07-11T14:03:48.256Z] GET /api/products
+[2026-07-11T14:03:48.258Z] GET /api/products?category=%E6%84%8F%E5%BC%8F%E5%92%96%E5%95%A1
+[2026-07-11T14:03:48.259Z] GET /api/products/1
+[2026-07-11T14:03:48.261Z] GET /api/products/9999
+[2026-07-11T14:03:48.262Z] POST /api/products
+[2026-07-11T14:03:48.264Z] PATCH /api/products/31
+[2026-07-11T14:03:48.266Z] PATCH /api/products/31
+[2026-07-11T14:03:48.268Z] GET /api/products?availableOnly=true
+[2026-07-11T14:03:48.269Z] DELETE /api/products/31
+[2026-07-11T14:03:48.271Z] POST /api/orders
+[2026-07-11T14:03:48.274Z] GET /api/orders/140
+[2026-07-11T14:03:48.275Z] GET /api/orders
+[2026-07-11T14:03:48.276Z] PATCH /api/orders/140/status
+[2026-07-11T14:03:48.278Z] PATCH /api/orders/140/status
+[2026-07-11T14:03:48.279Z] PATCH /api/merchant/orders/140/status
+[2026-07-11T14:03:48.280Z] PATCH /api/merchant/orders/140/status
+[2026-07-11T14:03:48.282Z] PATCH /api/merchant/orders/140/status
+[LEVEL] openid=mock_openid_3840... → level 1 (3 orders)
+[2026-07-11T14:03:48.284Z] POST /api/orders
+[2026-07-11T14:03:48.357Z] POST /api/sessions
+[2026-07-11T14:03:48.362Z] GET /api/products?category=%E6%84%8F%E5%BC%8F%E5%92%96%E5%95%A1
+[2026-07-11T14:03:48.363Z] POST /api/orders
+[2026-07-11T14:03:48.367Z] GET /api/merchant/orders?status=pending
+[2026-07-11T14:03:48.369Z] PATCH /api/orders/142/status
+[2026-07-11T14:03:48.372Z] PATCH /api/merchant/orders/142/status
+[2026-07-11T14:03:48.374Z] PATCH /api/merchant/orders/142/status
+[2026-07-11T14:03:48.376Z] PATCH /api/merchant/orders/142/status
+[LEVEL] openid=mock_openid_9602... → level 1 (3 orders)
+[2026-07-11T14:03:48.379Z] POST /api/orders
+[2026-07-11T14:03:48.380Z] POST /api/orders
+[2026-07-11T14:03:48.381Z] POST /api/orders
+[2026-07-11T14:03:48.384Z] POST /api/orders
+[2026-07-11T14:03:48.386Z] POST /api/orders
+[2026-07-11T14:03:48.389Z] PATCH /api/orders/145/status
+[2026-07-11T14:03:48.391Z] PATCH /api/orders/145/status
+[2026-07-11T14:03:48.392Z] GET /api/orders/142
+[2026-07-11T14:03:48.456Z] GET /api/merchant/users
+[2026-07-11T14:03:48.459Z] GET /api/merchant/users
+[2026-07-11T14:03:48.463Z] POST /api/sessions
+[2026-07-11T14:03:48.465Z] POST /api/sessions
+[2026-07-11T14:03:48.466Z] POST /api/sessions
+[2026-07-11T14:03:48.468Z] PATCH /api/users/me
+[2026-07-11T14:03:48.471Z] POST /api/users/phone-plain
+[users] plain phone set for openid=mock_openid_b2f3... (unverified)
+[2026-07-11T14:03:48.474Z] PATCH /api/users/me
+[2026-07-11T14:03:48.476Z] POST /api/users/phone-plain
+[users] plain phone set for openid=mock_openid_0348... (unverified)
+[2026-07-11T14:03:48.478Z] PATCH /api/users/me
+[2026-07-11T14:03:48.480Z] GET /api/merchant/users
+[2026-07-11T14:03:48.483Z] GET /api/merchant/users?search=%E5%BC%A0%E4%B8%89
+[2026-07-11T14:03:48.484Z] GET /api/merchant/users?search=13800138001
+[2026-07-11T14:03:48.485Z] GET /api/merchant/users?has_phone=true
+[2026-07-11T14:03:48.486Z] GET /api/merchant/users?has_phone=false
+[2026-07-11T14:03:48.489Z] GET /api/merchant/users?search=13800138001
+[2026-07-11T14:03:48.491Z] GET /api/merchant/users/mock_openid_b2f3ed1e7b3d11bc
+[2026-07-11T14:03:48.492Z] GET /api/merchant/users/no-such-openid
+[2026-07-11T14:03:48.492Z] GET /api/products
+[2026-07-11T14:03:48.493Z] POST /api/orders
+[2026-07-11T14:03:48.495Z] GET /api/merchant/orders/146
+[2026-07-11T14:03:48.496Z] DELETE /api/merchant/users/mock_openid_b2f3ed1e7b3d11bc
+[AUDIT] Merchant unknown deleted user mock_openid_b2f3ed1e7b3d11bc (orders anonymized: 1, sessions: 1) at 2026-07-11T14:03:48.497Z
+[2026-07-11T14:03:48.498Z] GET /api/merchant/users/mock_openid_b2f3ed1e7b3d11bc
+[2026-07-11T14:03:48.499Z] GET /api/users/me
+[2026-07-11T14:03:48.499Z] GET /api/merchant/orders/146
+[2026-07-11T14:03:48.500Z] DELETE /api/merchant/users/mock_openid_b2f3ed1e7b3d11bc
+[2026-07-11T14:03:48.501Z] DELETE /api/merchant/users/mock_openid_0348ba9776c5dc09
+[2026-07-11T14:03:48.501Z] GET /api/merchant/users/mock_openid_0348ba9776c5dc09
+[2026-07-11T14:03:48.502Z] DELETE /api/merchant/users/mock_openid_0348ba9776c5dc09
+[AUDIT] Merchant unknown deleted user mock_openid_0348ba9776c5dc09 (orders anonymized: 0, sessions: 1) at 2026-07-11T14:03:48.503Z
+[2026-07-11T14:03:48.504Z] DELETE /api/merchant/users/mock_openid_042123d661f1db73
+[AUDIT] Merchant unknown deleted user mock_openid_042123d661f1db73 (orders anonymized: 0, sessions: 1) at 2026-07-11T14:03:48.505Z
+[2026-07-11T14:03:48.589Z] GET /api/settings
+[2026-07-11T14:03:48.593Z] PATCH /api/merchant/settings
+[2026-07-11T14:03:48.595Z] PATCH /api/merchant/settings
+[2026-07-11T14:03:48.596Z] PATCH /api/merchant/settings
+[2026-07-11T14:03:48.597Z] PATCH /api/merchant/settings
+[2026-07-11T14:03:48.598Z] PATCH /api/merchant/settings
+[2026-07-11T14:03:48.599Z] PATCH /api/merchant/settings
+[2026-07-11T14:03:48.601Z] POST /api/sessions
+[2026-07-11T14:03:48.603Z] GET /api/users/me?include=level
+[2026-07-11T14:03:48.606Z] GET /api/products
+[2026-07-11T14:03:48.607Z] POST /api/orders
+[2026-07-11T14:03:48.610Z] POST /api/orders
+[2026-07-11T14:03:48.612Z] POST /api/orders
+[2026-07-11T14:03:48.614Z] POST /api/orders
+[2026-07-11T14:03:48.619Z] POST /api/orders
+[2026-07-11T14:03:48.622Z] POST /api/orders
+[2026-07-11T14:03:48.625Z] POST /api/orders
+[2026-07-11T14:03:48.627Z] POST /api/orders
+[2026-07-11T14:03:48.629Z] POST /api/orders
+[2026-07-11T14:03:48.632Z] POST /api/orders
+[2026-07-11T14:03:48.634Z] PATCH /api/merchant/orders/147/status
+[2026-07-11T14:03:48.636Z] PATCH /api/merchant/orders/147/status
+[2026-07-11T14:03:48.638Z] PATCH /api/merchant/orders/147/status
+[2026-07-11T14:03:48.639Z] PATCH /api/merchant/orders/147/status
+[LEVEL] openid=mock_openid_e9ce... → level 1 (1 orders)
+[2026-07-11T14:03:48.642Z] PATCH /api/merchant/orders/148/status
+[2026-07-11T14:03:48.643Z] PATCH /api/merchant/orders/148/status
+[2026-07-11T14:03:48.644Z] PATCH /api/merchant/orders/148/status
+[2026-07-11T14:03:48.646Z] PATCH /api/merchant/orders/148/status
+[LEVEL] openid=mock_openid_e9ce... → level 1 (2 orders)
+[2026-07-11T14:03:48.648Z] PATCH /api/merchant/orders/149/status
+[2026-07-11T14:03:48.650Z] PATCH /api/merchant/orders/149/status
+[2026-07-11T14:03:48.651Z] PATCH /api/merchant/orders/149/status
+[2026-07-11T14:03:48.652Z] PATCH /api/merchant/orders/149/status
+[LEVEL] openid=mock_openid_e9ce... → level 1 (3 orders)
+[2026-07-11T14:03:48.655Z] PATCH /api/merchant/orders/150/status
+[2026-07-11T14:03:48.657Z] PATCH /api/merchant/orders/150/status
+[2026-07-11T14:03:48.658Z] PATCH /api/merchant/orders/150/status
+[2026-07-11T14:03:48.660Z] PATCH /api/merchant/orders/150/status
+[LEVEL] openid=mock_openid_e9ce... → level 1 (4 orders)
+[2026-07-11T14:03:48.662Z] PATCH /api/merchant/orders/151/status
+[2026-07-11T14:03:48.664Z] PATCH /api/merchant/orders/151/status
+[2026-07-11T14:03:48.666Z] PATCH /api/merchant/orders/151/status
+[2026-07-11T14:03:48.668Z] PATCH /api/merchant/orders/151/status
+[LEVEL] openid=mock_openid_e9ce... → level 1 (5 orders)
+[2026-07-11T14:03:48.670Z] PATCH /api/merchant/orders/152/status
+[2026-07-11T14:03:48.672Z] PATCH /api/merchant/orders/152/status
+[2026-07-11T14:03:48.674Z] PATCH /api/merchant/orders/152/status
+[2026-07-11T14:03:48.676Z] PATCH /api/merchant/orders/152/status
+[LEVEL] openid=mock_openid_e9ce... → level 1 (6 orders)
+[2026-07-11T14:03:48.678Z] PATCH /api/merchant/orders/153/status
+[2026-07-11T14:03:48.680Z] PATCH /api/merchant/orders/153/status
+[2026-07-11T14:03:48.681Z] PATCH /api/merchant/orders/153/status
+[2026-07-11T14:03:48.682Z] PATCH /api/merchant/orders/153/status
+[LEVEL] openid=mock_openid_e9ce... → level 1 (7 orders)
+[2026-07-11T14:03:48.685Z] PATCH /api/merchant/orders/154/status
+[2026-07-11T14:03:48.686Z] PATCH /api/merchant/orders/154/status
+[2026-07-11T14:03:48.688Z] PATCH /api/merchant/orders/154/status
+[2026-07-11T14:03:48.689Z] PATCH /api/merchant/orders/154/status
+[LEVEL] openid=mock_openid_e9ce... → level 1 (8 orders)
+[2026-07-11T14:03:48.692Z] PATCH /api/merchant/orders/155/status
+[2026-07-11T14:03:48.693Z] PATCH /api/merchant/orders/155/status
+[2026-07-11T14:03:48.695Z] PATCH /api/merchant/orders/155/status
+[2026-07-11T14:03:48.696Z] PATCH /api/merchant/orders/155/status
+[LEVEL] openid=mock_openid_e9ce... → level 1 (9 orders)
+[2026-07-11T14:03:48.698Z] PATCH /api/merchant/orders/156/status
+[2026-07-11T14:03:48.700Z] PATCH /api/merchant/orders/156/status
+[2026-07-11T14:03:48.701Z] PATCH /api/merchant/orders/156/status
+[2026-07-11T14:03:48.702Z] PATCH /api/merchant/orders/156/status
+[LEVEL] openid=mock_openid_e9ce... → level 2 (10 orders)
+[2026-07-11T14:03:48.706Z] GET /api/users/me?include=level
+[2026-07-11T14:03:48.707Z] POST /api/orders
+[2026-07-11T14:03:48.709Z] GET /api/merchant/users
+[2026-07-11T14:03:48.712Z] GET /api/merchant/users/mock_openid_e9ce93bee5446655
+[2026-07-11T14:03:48.712Z] POST /api/orders
+[2026-07-11T14:03:48.715Z] GET /api/users/me?include=level
+[2026-07-11T14:03:48.716Z] POST /api/orders
+[2026-07-11T14:03:48.718Z] PATCH /api/merchant/orders/159/status
+[2026-07-11T14:03:48.719Z] PATCH /api/merchant/orders/159/status
+[2026-07-11T14:03:48.721Z] PATCH /api/merchant/orders/159/status
+[2026-07-11T14:03:48.723Z] PATCH /api/merchant/orders/159/status
+[LEVEL] openid=mock_openid_e9ce... → level 2 (11 orders)
+[2026-07-11T14:03:48.725Z] GET /api/users/me?include=level
+[2026-07-11T14:03:48.726Z] PATCH /api/merchant/settings
+[2026-07-11T14:05:43.972Z] GET /api/products?availableOnly=true
+[2026-07-11T14:05:43.973Z] GET /api/users/me?include=level
+[2026-07-11T14:05:43.975Z] GET /api/categories
+[2026-07-11T14:05:43.976Z] GET /api/users/me?include=level
