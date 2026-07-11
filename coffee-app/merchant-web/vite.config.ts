@@ -16,6 +16,10 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       port: 5173,
+      // Vite 7 默认不允许 localhost 以外的 host 访问 dev server,
+      // 加上 rpi.tomlinfree.dpdns.org 后才可以通过该域名访问 (LAN 真机调试)
+      // 还可以加 'true' 一次性放行所有 host (仅限开发环境)
+      allowedHosts: ['rpi.tomlinfree.dpdns.org', 'localhost', '127.0.0.1'],
       proxy: {
         '/api': {
           target: DEV_API_TARGET,
