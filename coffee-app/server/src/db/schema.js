@@ -76,11 +76,26 @@ CREATE TABLE IF NOT EXISTS users (
   avatar_url TEXT,
   phone TEXT,
   phone_verified INTEGER NOT NULL DEFAULT 0,
+  -- 会员等级: 初始 1，每完成 N 单自动升 1 级
+  level INTEGER NOT NULL DEFAULT 1,
+  -- 已完成订单数 (仅 status='completed' 的订单计入)
+  completed_orders INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
+-- Note: idx_users_level is created in the migration step (after the
+-- column is added to pre-existing DBs). Putting it here would fail with
+-- "no such column: level" when the schema is re-applied to an old DB.
+
+-- 商家可配置的系统设置 (key-value 存储)
+-- 用于会员等级、折扣等可调参数
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
 
 -- 菜单分类表
 -- 与 products.category 字段冗余存储：分类本身有自己的元数据（icon、排序），

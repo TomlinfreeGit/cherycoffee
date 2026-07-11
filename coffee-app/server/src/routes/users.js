@@ -30,7 +30,7 @@ function getOrCreateUser(openid) {
 }
 
 function serializeUser(user, options = {}) {
-  const { includePhone = false } = options;
+  const { includePhone = false, includeLevel = false } = options;
   const out = {
     openid: user.openid,
     nickname: user.nickname || null,
@@ -44,6 +44,21 @@ function serializeUser(user, options = {}) {
   if (includePhone) {
     out.phone = user.phone || null;
   }
+  // Include level info when explicitly requested via ?include=level
+  // (or any other include that implies level).
+  if (includeLevel) {
+    const { computeDiscount, getLevelSettings } = require('../services/level');
+    const settings = getLevelSettings();
+    out.level = user.level || 1;
+    out.completed_orders = user.completed_orders || 0;
+    out.discount = computeDiscount(user.level || 1, settings); // 0.00–0.20
+    out.next_level_orders = Math.max(
+      0,
+      settings.level_orders_required -
+        ((user.completed_orders || 0) % settings.level_orders_required)
+    );
+    out.next_level_threshold = settings.level_orders_required;
+  }
   return out;
 }
 
@@ -52,6 +67,7 @@ router.use(customerAuth);
 
 // GET /api/users/me
 // Query: include=phone  -> also return the user's own raw (unmasked) phone.
+//         include=level  -> also return level, completed_orders, discount preview.
 //                          Safe because the user can only read their own record
 //                          (openid is bound to their session).
 router.get('/me', (req, res) => {
@@ -59,7 +75,8 @@ router.get('/me', (req, res) => {
     const user = getOrCreateUser(req.openid);
     const include = String(req.query.include || '').split(',').map((s) => s.trim()).filter(Boolean);
     const includePhone = include.includes('phone');
-    res.json({ data: serializeUser(user, { includePhone }) });
+    const includeLevel = include.includes('level');
+    res.json({ data: serializeUser(user, { includePhone, includeLevel }) });
   } catch (e) {
     console.error('GET /api/users/me error:', e);
     res.status(500).json({ error: 'Internal server error' });

@@ -3,6 +3,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { merchantAuth } = require('../middleware/merchantAuth');
+const { incrementCompletedOrders } = require('../services/level');
 
 const router = express.Router();
 
@@ -144,10 +145,29 @@ router.patch('/orders/:id/status', (req, res) => {
     params.push(req.params.id);
     db.prepare(`UPDATE orders SET ${updates.join(', ')} WHERE id = ?`).run(...params);
 
+    // If transitioning to 'completed' (the only terminal "done" state), increment
+    // the user's completed_orders counter and refresh their level.
+    let levelInfo = null;
+    if (status === 'completed' && order.openid) {
+      const updatedUser = incrementCompletedOrders(order.openid);
+      if (updatedUser) {
+        levelInfo = {
+          level: updatedUser.level,
+          completed_orders: updatedUser.completed_orders
+        };
+        console.log(`[LEVEL] openid=${order.openid.slice(0, 16)}... → level ${levelInfo.level} (${levelInfo.completed_orders} orders)`);
+      }
+    }
+
     const updated = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
     const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
     res.json({
-      data: { ...updated, customer_phone_masked: maskPhone(updated.customer_phone), items }
+      data: {
+        ...updated,
+        customer_phone_masked: maskPhone(updated.customer_phone),
+        items,
+        user_level: levelInfo
+      }
     });
   } catch (err) {
     console.error('PATCH /api/merchant/orders/:id/status error:', err);
@@ -212,22 +232,34 @@ router.get('/users', (req, res) => {
 
     const rows = db.prepare(sql).all(...params);
 
-    // Also get order count per user (single query, joined in JS)
+    // Also get order stats per user (single query, joined in JS).
+    // We track two counts:
+    //   - order_count:    total orders (any status)
+    //   - completed_orders_count: only orders with status='completed'
+    // The latter is what drives the user's level.
     const openids = rows.map((r) => r.openid);
-    let orderCountByOpenid = {};
+    let orderStatsByOpenid = {};
     if (openids.length > 0) {
       const placeholders = openids.map(() => '?').join(',');
       const orderStats = db.prepare(`
-        SELECT openid, COUNT(*) AS cnt, MAX(created_at) AS last_order_at
+        SELECT openid,
+               COUNT(*) AS cnt,
+               SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_cnt,
+               MAX(created_at) AS last_order_at
         FROM orders
         WHERE openid IN (${placeholders})
         GROUP BY openid
       `).all(...openids);
       for (const s of orderStats) {
-        orderCountByOpenid[s.openid] = { count: s.cnt, last_order_at: s.last_order_at };
+        orderStatsByOpenid[s.openid] = {
+          count: s.cnt,
+          completed_count: s.completed_cnt || 0,
+          last_order_at: s.last_order_at
+        };
       }
     }
 
+    const { computeDiscount } = require('../services/level');
     const data = rows.map((u) => ({
       openid: u.openid,
       nickname: u.nickname || null,
@@ -235,8 +267,11 @@ router.get('/users', (req, res) => {
       phone: maskUserPhone(u.phone),
       has_phone: !!u.phone,
       phone_verified: !!u.phone_verified,
-      order_count: (orderCountByOpenid[u.openid] || {}).count || 0,
-      last_order_at: (orderCountByOpenid[u.openid] || {}).last_order_at || null,
+      level: u.level || 1,
+      completed_orders: (orderStatsByOpenid[u.openid] || {}).completed_count || 0,
+      discount: computeDiscount(u.level || 1), // 0.00–0.20
+      order_count: (orderStatsByOpenid[u.openid] || {}).count || 0,
+      last_order_at: (orderStatsByOpenid[u.openid] || {}).last_order_at || null,
       created_at: u.created_at,
       updated_at: u.updated_at
     }));
@@ -256,12 +291,17 @@ router.get('/users/:openid', (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Order stats
+    // Order stats (split by status so we can show both)
     const stats = db.prepare(`
-      SELECT COUNT(*) AS cnt, MAX(created_at) AS last_order_at, SUM(total_amount) AS total_spent
+      SELECT
+        COUNT(*) AS cnt,
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_cnt,
+        MAX(created_at) AS last_order_at,
+        SUM(total_amount) AS total_spent
       FROM orders WHERE openid = ?
     `).get(req.params.openid);
 
+    const { computeDiscount } = require('../services/level');
     res.json({
       data: {
         openid: user.openid,
@@ -270,6 +310,9 @@ router.get('/users/:openid', (req, res) => {
         phone: maskUserPhone(user.phone),
         has_phone: !!user.phone,
         phone_verified: !!user.phone_verified,
+        level: user.level || 1,
+        completed_orders: stats ? (stats.completed_cnt || 0) : 0,
+        discount: computeDiscount(user.level || 1),
         order_count: stats ? stats.cnt : 0,
         last_order_at: stats ? stats.last_order_at : null,
         total_spent: stats ? stats.total_spent : 0,
@@ -300,7 +343,9 @@ router.delete('/users/:openid', (req, res) => {
 
     db.exec('BEGIN');
     try {
-      // 1. Anonymize historical orders
+      // 1. Anonymize historical orders (also reset openid so the user's
+      //    completion count is "forgotten" - their profile row will be
+      //    deleted in step 3 below anyway).
       const orderUpdate = db.prepare(`
         UPDATE orders
         SET customer_name = NULL, customer_phone = NULL, openid = NULL,

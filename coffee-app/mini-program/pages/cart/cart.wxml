@@ -26,7 +26,13 @@
         </view>
         <view class="cart-item-main">
           <view class="cart-item-name">{{item.product_name}}</view>
-          <view class="cart-item-price price">{{item.price}}</view>
+          <view class="cart-item-price-row">
+            <text class="cart-item-price price">{{item.unit_price_discounted || item.price}}</text>
+            <text class="cart-item-price-original" wx:if="{{item.has_discount}}">¥{{item.price}}</text>
+          </view>
+          <view class="cart-item-subtotal" wx:if="{{item.quantity > 1}}">
+            小计 ¥{{item.subtotal_discounted}}
+          </view>
         </view>
         <view class="cart-item-actions">
           <view class="qty-btn" data-id="{{item.product_id}}" bindtap="decrease">−</view>
@@ -100,7 +106,14 @@
     <view class="bottom-bar-placeholder"></view>
 
     <view class="bottom-bar">
-      <view class="summary">合计</view>
+      <view class="summary-block">
+        <view class="summary">合计</view>
+        <view class="summary-extra" wx:if="{{hasDiscount}}">
+          <text class="summary-original">¥{{originalTotal}}</text>
+          <text class="summary-saved">已优惠 ¥{{saved}}</text>
+        </view>
+        <view class="summary-level" wx:if="{{hasDiscount}}">⭐ Lv.{{userLevel}} 会员价</view>
+      </view>
       <view class="total price">{{total}}</view>
       <button
         class="btn btn-primary"

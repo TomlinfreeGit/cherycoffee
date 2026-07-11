@@ -10,6 +10,10 @@ Page({
     loading: true,
     cartCount: 0,
     cartTotal: '0.00',
+    // 会员等级相关
+    userLevel: 1,
+    discount: 1.0,
+    hasDiscount: false, // level>1 时为 true
     // 商品详情弹窗
     detailProduct: null,
     detailVisible: false
@@ -17,11 +21,44 @@ Page({
 
   onLoad() {
     this.loadCategoriesAndProducts();
-    api.ensureLoggedIn().catch((e) => console.warn('Login:', e.message));
+    api.ensureLoggedIn()
+      .then(() => app.loadUserLevel())
+      .then(() => this.applyLevelToView())
+      .catch((e) => console.warn('Login:', e.message));
   },
 
   onShow() {
     this.refreshCart();
+    // 用户在其他页完成订单后级别提升，重新拉一次
+    if (wx.getStorageSync('session_token')) {
+      app.loadUserLevel().then(() => this.applyLevelToView());
+    }
+  },
+
+  applyLevelToView() {
+    this.setData({
+      userLevel: app.globalData.level || 1,
+      discount: app.globalData.discount || 1.0,
+      hasDiscount: (app.globalData.discount || 1.0) < 0.999
+    });
+    // Refresh displayed product prices
+    this.applyDiscountToProducts();
+  },
+
+  // 给当前 products 列表加上 discounted_price
+  applyDiscountToProducts() {
+    const products = this.data.products.map((p) => ({
+      ...p,
+      discounted_price: app.priceWithDiscount(p.price),
+      has_discount: app.priceWithDiscount(p.price) < p.price - 0.001
+    }));
+    this.setData({ products });
+    // Also refresh the detail modal if open
+    if (this.data.detailProduct) {
+      const dp = this.data.detailProduct;
+      const fresh = products.find((p) => p.id === dp.id);
+      if (fresh) this.setData({ detailProduct: fresh });
+    }
   },
 
   onPullDownRefresh() {
@@ -153,7 +190,12 @@ Page({
   refreshCart() {
     const cart = app.globalData.cart;
     const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    // Apply current level discount to the cart total too, so what the
+    // user sees in the bottom-bar matches what they'll pay at checkout.
+    const total = cart.reduce(
+      (sum, item) => sum + app.priceWithDiscount(item.price) * item.quantity,
+      0
+    );
     this.setData({
       cartCount: count,
       cartTotal: total.toFixed(2)

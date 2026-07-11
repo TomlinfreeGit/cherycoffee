@@ -12,7 +12,15 @@ Page({
     saving: false,
     // Manual phone entry fallback
     manualOpen: false,
-    manualPhone: ''
+    manualPhone: '',
+    // 会员等级
+    userLevel: 1,
+    discount: 1.0,
+    completedOrders: 0,
+    nextLevelOrders: 10,
+    nextLevelThreshold: 10,
+    levelProgress: 0, // 0–100 当前等级内进度
+    discountPct: 0   // 例如 1 表示全价, 0.99 表示 99 折, 0.8 表示 8 折
   },
 
   // Internal state (not in data)
@@ -22,6 +30,7 @@ Page({
 
   onShow() {
     this.loadProfile();
+    this.loadLevel();
   },
 
   onUnload() {
@@ -29,6 +38,39 @@ Page({
       clearTimeout(this._nicknameTimer);
       this._nicknameTimer = null;
       this.flushNickname();
+    }
+  },
+
+  // 加载会员等级信息
+  async loadLevel() {
+    if (!wx.getStorageSync('session_token')) return;
+    try {
+      const res = await api.getUserProfile({ includeLevel: true });
+      const d = res.data || {};
+      const completed = d.completed_orders || 0;
+      const threshold = d.next_level_threshold || 10;
+      // 当前等级内进度: 已完成 - (level-1)*threshold → 除以 threshold
+      const inTier = completed % threshold;
+      const progress = threshold > 0 ? Math.min(100, Math.round((inTier / threshold) * 100)) : 0;
+      this.setData({
+        userLevel: d.level || 1,
+        discount: typeof d.discount === 'number' ? d.discount : 1.0,
+        completedOrders: completed,
+        nextLevelOrders: d.next_level_orders || 0,
+        nextLevelThreshold: threshold,
+        levelProgress: progress,
+        // 转成“折扣百分比”: 0.99 -> 99折; 1 -> 不打折
+        discountPct: Math.round((d.discount || 1) * 100)
+      });
+      // 同步到 app.globalData (供 cart / menu 复用)
+      const app = getApp();
+      app.globalData.level = d.level || 1;
+      app.globalData.discount = d.discount || 1.0;
+      app.globalData.completedOrders = completed;
+      app.globalData.nextLevelOrders = d.next_level_orders || 0;
+      app.globalData.nextLevelThreshold = threshold;
+    } catch (e) {
+      // 没登录时静默忽略
     }
   },
 

@@ -5,6 +5,25 @@
   </block>
 
   <block wx:else>
+    <!-- 会员等级卡片 -->
+    <view class="level-card">
+      <view class="level-card-header">
+        <view class="level-badge">Lv.{{userLevel}}</view>
+        <view class="level-discount">{{discountPct}}折</view>
+      </view>
+      <view class="level-progress-label">
+        <text>已完成 {{completedOrders}} 单</text>
+        <text wx:if="{{userLevel < 999}}">还差 {{nextLevelOrders}} 单升级</text>
+      </view>
+      <view class="level-progress-track">
+        <view class="level-progress-fill" style="width: {{levelProgress}}%"></view>
+      </view>
+      <view class="level-progress-foot">
+        <text>{{userLevel === 1 ? 0 : (userLevel - 1) * nextLevelThreshold}}</text>
+        <text>Lv.{{userLevel + 1}}</text>
+      </view>
+    </view>
+
     <!-- 昵称区域 -->
     <view class="section">
       <view class="section-title">昵称</view>

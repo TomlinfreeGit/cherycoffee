@@ -62,6 +62,49 @@
   font-weight: 600;
 }
 
+.cart-item-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+}
+.cart-item-price-original {
+  font-size: 22rpx;
+  color: #999;
+  text-decoration: line-through;
+}
+.cart-item-subtotal {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #777;
+}
+
+.summary-block {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.summary-extra {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+  margin-top: 2rpx;
+}
+.summary-original {
+  font-size: 22rpx;
+  color: #999;
+  text-decoration: line-through;
+}
+.summary-saved {
+  font-size: 22rpx;
+  color: #ff5e62;
+  font-weight: 600;
+}
+.summary-level {
+  font-size: 20rpx;
+  color: #ff5e62;
+  margin-top: 2rpx;
+}
+
 .cart-item-actions {
   display: flex;
   align-items: center;

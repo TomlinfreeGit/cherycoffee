@@ -21,6 +21,30 @@
   overflow: hidden;
 }
 
+/* ─── 顶部会员等级条 ──────────────────────────────── */
+.level-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56rpx;
+  background: linear-gradient(90deg, #ff9966, #ff5e62);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  font-weight: 500;
+  z-index: 10;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
+}
+.level-bar .level-icon { margin-right: 8rpx; }
+
+/* 当 level-bar 显示时,让下面的 sidebar 和 product-area 向下偏移 */
+.category-sidebar,
+.product-area { padding-top: 56rpx; }
+.has-level-bar .bottom-bar { bottom: 0; }
+
 /* ─── 左侧分类栏 ─────────────────────────────────── */
 .category-sidebar {
   /* Fixed width sidebar — scroll-view 内部高度由父元素撑开 */
@@ -170,6 +194,30 @@
 .product-price {
   font-size: 36rpx;
   font-weight: 700;
+}
+
+/* 价格行:支持折扣后价格 + 划线原价 */
+.product-price-line {
+  display: flex;
+  align-items: baseline;
+  margin-right: 16rpx;
+}
+.product-price-original {
+  font-size: 22rpx;
+  color: #999;
+  text-decoration: line-through;
+  margin-left: 8rpx;
+}
+.detail-price-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+.detail-price-original {
+  font-size: 26rpx;
+  color: #999;
+  text-decoration: line-through;
 }
 
 /* ─── 空状态 ─────────────────────────────────── */

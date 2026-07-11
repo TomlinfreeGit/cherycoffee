@@ -21,6 +21,14 @@ App({
     // 用户 openid（从 session 获取）
     openid: null,
 
+    // 会员等级 + 折扣参数（启动后从 /api/settings + /api/users/me 填充）
+    // discount 是折扣倍率：level 1 = 1.00（不打折），level 2 = 0.99 ...
+    level: 1,
+    discount: 1.0, // 0.80–1.00
+    completedOrders: 0,
+    nextLevelOrders: 10, // 还差几单升一级
+    nextLevelThreshold: 10, // 每 N 单升一级
+
     // 初始化标志：onLaunch 是否完成
     ready: false
   },
@@ -33,8 +41,40 @@ App({
     // 自动检测环境：在真机上使用 LAN IP（如果 localhost 不可达）
     this.detectApiHost();
 
+    // 异步预取公开设置（不阻塞启动）
+    this.loadSettings();
+
     // 标记启动完成
     this.globalData.ready = true;
+  },
+
+  // 预取系统设置（会员等级 + 折扣参数）
+  loadSettings() {
+    const api = require('./utils/api.js');
+    api.getSettings()
+      .then((res) => {
+        const s = res.data || {};
+        if (typeof s.level_orders_required === 'number') {
+          this.globalData.nextLevelThreshold = s.level_orders_required;
+        }
+      })
+      .catch((e) => console.warn('loadSettings:', e.message));
+  },
+
+  // 拉取当前用户等级信息 (登录后调用)
+  async loadUserLevel() {
+    const api = require('./utils/api.js');
+    try {
+      const res = await api.getUserProfile({ includeLevel: true });
+      const d = res.data || {};
+      this.globalData.level = d.level || 1;
+      this.globalData.discount = typeof d.discount === 'number' ? d.discount : 1.0;
+      this.globalData.completedOrders = d.completed_orders || 0;
+      this.globalData.nextLevelOrders = d.next_level_orders || this.globalData.nextLevelThreshold;
+      this.globalData.nextLevelThreshold = d.next_level_threshold || this.globalData.nextLevelThreshold;
+    } catch (e) {
+      // 没登录或网络错误时静默忽略（默认 level=1）
+    }
   },
 
   // 检测 API 主机：先试 localhost，失败后回退到 LAN IP
@@ -107,5 +147,19 @@ App({
   clearCart() {
     this.globalData.cart = [];
     this.saveCart();
+  },
+
+  // 计算折扣后价格（基于 globalData.discount 倍率）
+  // discount=1.00 → 返回原价（无折扣）
+  // discount=0.99 → 返回原价的 99%
+  priceWithDiscount(originalPrice) {
+    const d = this.globalData.discount || 1.0;
+    const rounded = Math.round(originalPrice * d * 100) / 100;
+    return rounded;
+  },
+
+  // 原价（保留2位小数，用于划线展示）
+  priceWithoutDiscount(originalPrice) {
+    return Math.round(Number(originalPrice) * 100) / 100;
   }
 });

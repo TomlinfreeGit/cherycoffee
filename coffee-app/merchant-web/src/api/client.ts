@@ -69,8 +69,18 @@ export interface User {
   order_count: number;
   last_order_at: string | null;
   total_spent?: number;
+  // 会员等级相关
+  level?: number;
+  completed_orders?: number;
+  discount?: number; // 0.80–1.00
   created_at: string;
   updated_at: string;
+}
+
+export interface LevelSettings {
+  level_orders_required: number;
+  level_discount_increment: number;
+  min_discount: number;
 }
 
 export interface UserListResult {
@@ -153,5 +163,10 @@ export const api = {
     request<{ data: { id: number; name: string; deleted: boolean; detached_products: number } }>(
       'DELETE',
       `/categories/${id}`
-    )
+    ),
+
+  // Settings (level + discount config)
+  getSettings: () => request<{ data: LevelSettings }>('GET', '/merchant/settings'),
+  updateSettings: (data: Partial<LevelSettings>) =>
+    request<{ data: LevelSettings }>('PATCH', '/merchant/settings', data)
 };

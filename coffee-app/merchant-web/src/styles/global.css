@@ -459,7 +459,7 @@ tr:hover td {
   word-break: break-all;
 }
 
-/* ������ Search / chip group (used in UsersPage) ������ */
+/* ������ Search / chip group (used in UsersPage) ������ */
 .search-input {
   flex: 1;
   min-width: 200px;
@@ -491,7 +491,7 @@ tr:hover td {
   align-items: center;
 }
 
-/* ������ Modal (used for delete confirm) ������ */
+/* ������ Modal (used for delete confirm) ������ */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -540,4 +540,125 @@ tr:hover td {
 
 .modal-footer .btn {
   min-width: 80px;
+}
+
+/* ─── Settings page ────────────────────────────────── */
+.page-settings {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.settings-header h2 {
+  margin: 0 0 8px 0;
+}
+.settings-header .muted {
+  color: #666;
+  font-size: 13px;
+  margin: 0 0 24px 0;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 720px) {
+  .settings-grid { grid-template-columns: 1fr; }
+}
+
+.settings-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+}
+.settings-card .card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #333;
+}
+.settings-card.preview-card { background: #fafafa; }
+
+.settings-card .field {
+  display: block;
+  margin-bottom: 20px;
+}
+.settings-card .field-label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+.settings-card .field input[type=number] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.settings-card .field input[type=number]:focus {
+  outline: none;
+  border-color: var(--primary, #6f4e37);
+  box-shadow: 0 0 0 2px rgba(111, 78, 55, 0.2);
+}
+.settings-card .field-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #888;
+}
+
+.action-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.preview-table th,
+.preview-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+.preview-table th { background: #f0f0f0; font-weight: 600; }
+.preview-note {
+  margin-top: 12px;
+  font-size: 12px;
+}
+.preview-note code {
+  background: #eee;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.page-loading { padding: 40px; text-align: center; color: #888; }
+
+/* ─── User management: level pill ───────────────────── */
+.level-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #ff9966, #ff5e62);
+  color: #fff;
+}
+.level-pill.muted {
+  background: #e0e0e0;
+  color: #666;
+}
+.discount-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  background: #fff3e0;
+  color: #d84315;
+  margin-left: 6px;
 }

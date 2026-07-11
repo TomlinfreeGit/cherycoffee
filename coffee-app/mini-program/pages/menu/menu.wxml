@@ -1,5 +1,11 @@
 <!-- filepath: coffee-app/mini-program/pages/menu/menu.wxml -->
 <view class="page-menu">
+  <!-- 顶部会员等级条 (仅当 level>1 时显示) -->
+  <view class="level-bar" wx:if="{{hasDiscount}}">
+    <text class="level-icon">⭐</text>
+    <text class="level-text">Lv.{{userLevel}} 会员专享价</text>
+  </view>
+
   <!-- 左侧分类栏 -->
   <scroll-view class="category-sidebar" scroll-y enhanced show-scrollbar="{{false}}">
     <view
@@ -57,7 +63,10 @@
             <view class="product-name">{{item.name}}</view>
             <view class="product-desc" wx:if="{{item.description}}">{{item.description}}</view>
             <view class="product-bottom">
-              <view class="product-price price">{{item.price}}</view>
+              <view class="product-price-line">
+                <text class="product-price price">{{item.discounted_price}}</text>
+                <text class="product-price-original" wx:if="{{item.has_discount}}">¥{{item.price}}</text>
+              </view>
               <button
                 class="btn btn-primary btn-sm"
                 size="mini"
@@ -113,7 +122,10 @@
       <view class="detail-body">
         <view class="detail-name">{{detailProduct.name}}</view>
         <!-- 注意：.price class 会在前面自动加 ¥ (CSS ::before),所以这里不能再写 ¥ -->
-        <view class="detail-price price">{{detailProduct.price}}</view>
+        <view class="detail-price-wrap">
+          <text class="detail-price price">{{detailProduct.discounted_price || detailProduct.price}}</text>
+          <text class="detail-price-original" wx:if="{{detailProduct.has_discount}}">原价 ¥{{detailProduct.price}}</text>
+        </view>
         <view class="detail-section-title">商品介绍</view>
         <view class="detail-desc">
           {{detailProduct.description || '暂无介绍'}}

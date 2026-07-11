@@ -30,7 +30,9 @@ const MIGRATIONS = [
   { table: 'sessions', column: 'session_key', type: 'TEXT' },
   // Make products.category nullable so categories can be deleted without
   // violating NOT NULL (products get their category set to NULL = detached).
-  { table: 'products', column: 'category', type: 'TEXT', allowNull: true }
+  { table: 'products', column: 'category', type: 'TEXT', allowNull: true },
+  { table: 'users', column: 'level', type: 'INTEGER', default: '1' },
+  { table: 'users', column: 'completed_orders', type: 'INTEGER', default: '0' }
 ];
 
 function runMigrations() {
@@ -48,6 +50,11 @@ function runMigrations() {
       }
     }
   }
+
+  // Create supporting indexes that depend on columns potentially added
+  // by the migrations above. We do this AFTER the column additions so
+  // existing DBs without `level` won't fail at CREATE INDEX time.
+  db.exec('CREATE INDEX IF NOT EXISTS idx_users_level ON users(level)');
 
   // SQL-level migrations: relax constraints (SQLite doesn't support ALTER COLUMN).
   // We use a "shadow table" approach: create new table → copy → rename.
@@ -168,5 +175,27 @@ function seedCategories() {
 
 seedInitialData();
 seedCategories();
+
+// Seed default settings on first run
+function seedSettings() {
+  const count = db.prepare('SELECT COUNT(*) as cnt FROM settings').get();
+  if (count.cnt > 0) return;
+  const defaults = [
+    ['level_orders_required', '10'],     // 每 10 单升一级
+    ['level_discount_increment', '0.01'], // 每级递减 0.01
+    ['min_discount', '0.80']              // 最低折扣 (不能低于原价的 80%)
+  ];
+  const ins = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)');
+  try {
+    db.exec('BEGIN');
+    for (const [k, v] of defaults) ins.run(k, v);
+    db.exec('COMMIT');
+    console.log(`✓ Seeded ${defaults.length} settings`);
+  } catch (e) {
+    db.exec('ROLLBACK');
+    console.warn('Settings seed failed:', e.message);
+  }
+}
+seedSettings();
 
 module.exports = { db };

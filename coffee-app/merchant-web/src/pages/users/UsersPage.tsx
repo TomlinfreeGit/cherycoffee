@@ -114,6 +114,7 @@ export default function UsersPage() {
             <tr>
               <th style={{ width: 100 }}>昵称</th>
               <th style={{ width: 140 }}>手机号</th>
+              <th style={{ width: 100 }}>等级</th>
               <th style={{ width: 80 }}>订单数</th>
               <th style={{ width: 140 }}>最近下单</th>
               <th style={{ width: 160 }}>注册时间</th>
@@ -131,6 +132,16 @@ export default function UsersPage() {
                     <span title="手机号已脱敏显示">{u.phone}</span>
                   ) : (
                     <span className="status status-cancelled">未绑定</span>
+                  )}
+                </td>
+                <td>
+                  <span className={`level-pill ${(u.level || 1) <= 1 ? 'muted' : ''}`}>
+                    Lv.{u.level || 1}
+                  </span>
+                  {(u.completed_orders || 0) > 0 && (
+                    <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--muted)' }}>
+                      已完成 {u.completed_orders}
+                    </span>
                   )}
                 </td>
                 <td>

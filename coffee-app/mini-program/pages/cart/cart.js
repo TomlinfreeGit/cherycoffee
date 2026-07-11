@@ -6,6 +6,10 @@ Page({
   data: {
     cart: [],
     total: '0.00',
+    originalTotal: '0.00',  // 折扣前的总价（用于划线展示）
+    saved: '0.00',          // 优惠金额
+    hasDiscount: false,     // 是否真的享受折扣
+    userLevel: 1,
     note: '',
     customerName: '',
     customerPhone: '',
@@ -17,8 +21,16 @@ Page({
   },
 
   onShow() {
-    this.refreshCart();
-    this.checkLoginAndLoadProfile();
+    // 拉一次最新等级（用户可能刚从其他页完成订单升级）
+    if (wx.getStorageSync('session_token')) {
+      app.loadUserLevel().then(() => {
+        this.refreshCart();
+        this.checkLoginAndLoadProfile();
+      });
+    } else {
+      this.refreshCart();
+      this.checkLoginAndLoadProfile();
+    }
   },
 
   // ─── 取餐人信息：仅从服务器填充，不读本地缓存 ────────────
@@ -67,14 +79,32 @@ Page({
 
   refreshCart() {
     const cart = app.globalData.cart;
-    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const cartWithImages = cart.map((item) => ({
-      ...item,
-      imageUrl: api.resolveImageUrl(item.image_url)
-    }));
+    const discount = app.globalData.discount || 1.0;
+    let originalTotal = 0;
+    let discountedTotal = 0;
+
+    const cartWithImages = cart.map((item) => {
+      const orig = Number(item.price) * item.quantity;
+      const discounted = app.priceWithDiscount(item.price) * item.quantity;
+      originalTotal += orig;
+      discountedTotal += discounted;
+      return {
+        ...item,
+        imageUrl: api.resolveImageUrl(item.image_url),
+        unit_price_discounted: app.priceWithDiscount(item.price),
+        subtotal_discounted: Math.round(discounted * 100) / 100,
+        has_discount: discount < 0.999
+      };
+    });
+
+    const hasDiscount = discount < 0.999 && originalTotal - discountedTotal > 0.001;
     this.setData({
       cart: cartWithImages,
-      total: total.toFixed(2)
+      total: discountedTotal.toFixed(2),
+      originalTotal: originalTotal.toFixed(2),
+      saved: Math.max(0, originalTotal - discountedTotal).toFixed(2),
+      hasDiscount,
+      userLevel: app.globalData.level || 1
     });
   },
 

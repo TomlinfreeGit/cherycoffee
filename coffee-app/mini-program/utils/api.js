@@ -199,10 +199,31 @@ module.exports = {
   // 获取当前用户资料
   //   includePhone=true 时，server 会在响应里附加真实手机号（user.phone），
   //   用于购物车自动填入取餐人信息。默认仅返回脱敏的 phone_masked。
-  async getUserProfile(includePhone = false) {
+  //   includeLevel=true 时，server 会在响应里附加 level / completed_orders /
+  //   discount / next_level_orders / next_level_threshold。
+  //   两者可以同时传。
+  //   兼容旧调用: getUserProfile(true) 也会当作 includePhone=true。
+  async getUserProfile(options = {}) {
+    let includePhone = false;
+    let includeLevel = false;
+    if (typeof options === 'boolean') {
+      // Backwards-compatible: positional boolean
+      includePhone = options;
+    } else if (options && typeof options === 'object') {
+      includePhone = !!options.includePhone;
+      includeLevel = !!options.includeLevel;
+    }
     await ensureLoggedIn();
-    const qs = includePhone ? '?include=phone' : '';
+    const parts = [];
+    if (includePhone) parts.push('phone');
+    if (includeLevel) parts.push('level');
+    const qs = parts.length ? '?include=' + parts.join(',') : '';
     return request(`/users/me${qs}`, 'GET');
+  },
+
+  // 获取公开的系统设置 (会员等级、折扣参数)
+  async getSettings() {
+    return request('/settings', 'GET');
   },
 
   // 更新昵称/头像

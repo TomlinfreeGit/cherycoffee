@@ -3,6 +3,7 @@ const express = require('express');
 const { db } = require('../db');
 const { generatePickupNumber } = require('../services/pickup');
 const { customerAuth, optionalCustomerAuth } = require('../middleware/auth');
+const { applyDiscount, incrementCompletedOrders } = require('../services/level');
 
 const router = express.Router();
 
@@ -44,6 +45,14 @@ router.post('/', optionalCustomerAuth, (req, res) => {
     let totalAmount = 0;
     const validatedItems = [];
 
+    // Look up the user's level (if logged in) so we can apply the discount.
+    // Customer-facing prices always reflect the user's current level.
+    let userLevel = 1;
+    if (req.openid) {
+      const u = db.prepare('SELECT level FROM users WHERE openid = ?').get(req.openid);
+      if (u) userLevel = u.level || 1;
+    }
+
     for (const item of items) {
       if (!item.product_id || !item.quantity || item.quantity <= 0) {
         return res.status(400).json({ error: 'Invalid item: product_id and quantity required' });
@@ -55,8 +64,10 @@ router.post('/', optionalCustomerAuth, (req, res) => {
       }
 
       const qty = parseInt(item.quantity, 10);
-      const unitPrice = product.price;
-      const subtotal = qty * unitPrice;
+      // Apply level discount to the unit price
+      const discounted = applyDiscount(product.price, userLevel);
+      const unitPrice = discounted.effective;
+      const subtotal = Math.round(unitPrice * qty * 100) / 100;
       totalAmount += subtotal;
 
       validatedItems.push({
@@ -65,7 +76,9 @@ router.post('/', optionalCustomerAuth, (req, res) => {
         product_image_url: product.image_url || null,
         quantity: qty,
         unit_price: unitPrice,
-        subtotal
+        original_unit_price: discounted.original,
+        subtotal,
+        level_applied: userLevel
       });
     }
 
