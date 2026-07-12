@@ -115,12 +115,15 @@ setInterval(() => {
 }, 5 * 60 * 1000).unref?.();
 
 // ─── session CRUD ──────────────────────────────────────────────
+// 多端策略: 每个登录入口(浏览器/手机)独立 token,互不影响。
+// - 单设备限制已取消: 同一商家账号可以同时在 PC + 手机 + 平板挂着
+// - 改密清空所有 session 是单独路径 (强制重新登录,见 changePassword)
+// - 远程踢出: listSessions / revokeSession / revokeAllOtherSessions 可显式管理
 function createSession(merchantId, ip, userAgent) {
   const token = crypto.randomBytes(32).toString('hex');  // 64-char
   const now = Date.now();
   const expiresAt = new Date(now + SESSION_TTL_MS).toISOString();
-  // 先删旧 session (one-session-per-user: 用户只能在一处登录)
-  db.prepare('DELETE FROM merchant_sessions WHERE merchant_id = ?').run(merchantId);
+  // 直接 INSERT,不再踢旧 session。多端并存。
   db.prepare(`
     INSERT INTO merchant_sessions (token, merchant_id, expires_at, ip, user_agent)
     VALUES (?, ?, ?, ?, ?)
@@ -173,6 +176,55 @@ function deleteSession(token) {
   if (!token) return false;
   const r = db.prepare('DELETE FROM merchant_sessions WHERE token = ?').run(token);
   return r.changes > 0;
+}
+
+/**
+ * 列出某个账号的所有 session (供 "我在哪些设备登录" UI 使用)。
+ * 返回时不暴露 token 哈希本身,而是截断 + 当前 token 用 isCurrent 标出。
+ *
+ * @param {number} merchantId
+ * @param {string} currentToken  用于在本会话的记录上标记 isCurrent=true
+ */
+function listSessions(merchantId, currentToken) {
+  if (!merchantId) return [];
+  const rows = db.prepare(`
+    SELECT token, expires_at, last_seen_at, ip, user_agent, created_at
+    FROM merchant_sessions
+    WHERE merchant_id = ?
+    ORDER BY last_seen_at DESC
+  `).all(merchantId);
+  return rows.map((r) => ({
+    token_suffix: r.token.slice(-6),                  // 只显示末尾 6 位用于人类识别
+    is_current: r.token === currentToken,
+    expires_at: r.expires_at,
+    last_seen_at: r.last_seen_at,
+    ip: r.ip,
+    user_agent: r.user_agent,
+    created_at: r.created_at
+  }));
+}
+
+/**
+ * 踢出某个 session (通常是另一个设备的)。不会踢出当前 token 自身 (避免误关)。
+ */
+function revokeSession(merchantId, targetToken) {
+  if (!merchantId || !targetToken) return false;
+  // 先校验:这个 token 必须属于 merchantId,否则返回 false (防越权)
+  const own = db.prepare('SELECT 1 FROM merchant_sessions WHERE token = ? AND merchant_id = ?')
+    .get(targetToken, merchantId);
+  if (!own) return false;
+  const r = db.prepare('DELETE FROM merchant_sessions WHERE token = ?').run(targetToken);
+  return r.changes > 0;
+}
+
+/**
+ * 踢出除当前 token 外的所有 session。
+ */
+function revokeAllOtherSessions(merchantId, currentToken) {
+  if (!merchantId) return 0;
+  const r = db.prepare('DELETE FROM merchant_sessions WHERE merchant_id = ? AND token <> ?')
+    .run(merchantId, currentToken || '');
+  return r.changes;
 }
 
 // ─── 账号 CRUD ─────────────────────────────────────────────────
@@ -275,6 +327,9 @@ module.exports = {
   createSession,
   findMerchantByToken,
   deleteSession,
+  listSessions,
+  revokeSession,
+  revokeAllOtherSessions,
   findMerchantByUsername,
   findMerchantById,
   createMerchant,

@@ -118,16 +118,61 @@ async function main() {
     assert(still.status === 429, '封禁后正确密码也 → 429');
   });
 
-  await runStage('7. 改密 - dev fallback 被拒 + 真 token 路径', async () => {
+  await runStage('6. 多端会话并存 (PC + 手机)', async () => {
+    // 限速桶还压着 → 用同一账号已经有 [1] 的 token 做这件事: 第二个 token 应独立
+    // 但 [1] 的 token 没有被 [5] 删掉,这就要看 [5] 的代码: logout 仅删当前 token。
+    // 我们再用一个新 ip 模拟"第二台设备" (注意: 限速绑定 IP+username,新 IP 不在同一桶)。
+    // 现实: 限速桶的键是 IP::username,不同 IP 不互相影响。
+
+    // 技巧: 用我刚 [1] 拿到的 token 做"PC session",再让 [1] token 重新用一个干净 IP 拿第二个 token
+    // 不现实 — 客户端登录接口是公开的,只能在测试里模拟多 IP。
+    // 最直接的验证: 直接走 service 层 createSession 两次
+    const { createSession: cs, findMerchantByToken, listSessions } =
+      require('./src/services/merchantAuth');
+    const { db } = require('./src/db');
+    const m = db.prepare('SELECT id FROM merchants WHERE username = ?').get('admin');
+    const sessionBefore = db.prepare('SELECT COUNT(*) AS n FROM merchant_sessions WHERE merchant_id = ?')
+      .get(m.id).n;
+
+    // 制造两个新 session 模拟多端
+    const a = cs(m.id, '192.168.1.10', 'Chrome/PC');
+    const b = cs(m.id, '10.0.0.5', 'iPhone/Mobile');
+    assert(typeof a.token === 'string' && a.token.length >= 64, 'A token 生成');
+    assert(b.token !== a.token, 'A、B token 互不相同');
+
+    // 两个都能查到对应 merchant
+    const mA = findMerchantByToken(a.token);
+    const mB = findMerchantByToken(b.token);
+    assert(mA && mA.id === m.id, 'A token 能查到 merchant');
+    assert(mB && mB.id === m.id, 'B token 能查到 merchant');
+
+    // 计数
+    const sessionAfter = db.prepare('SELECT COUNT(*) AS n FROM merchant_sessions WHERE merchant_id = ?')
+      .get(m.id).n;
+    assert(sessionAfter === sessionBefore + 2, '两台设备 session 都持久化了');
+
+    // listSessions 正确返回 + is_current 标记
+    const list = listSessions(m.id, a.token);
+    assert(list.length >= 2, 'listSessions 返回至少 2 条');
+    const currentItems = list.filter((s) => s.is_current);
+    assert(currentItems.length === 1, '只有 1 条标记 is_current');
+    assert(currentItems[0].token_suffix === a.token.slice(-6),
+      'is_current 设备的 token_suffix 与 A token 匹配');
+    assert(!list.find((s) => s.token_suffix === a.token.slice(-6)).is_current === false,
+      'A 在列表中且 is_current=true');
+  });
+
+  await runStage('7. 改密 - dev fallback 被拒 + 真密码清空所有 session', async () => {
     // dev fallback 不能改密(没有对应 merchant 行)
     const devReject = await req('POST', '/api/merchant-auth/change-password', {
       oldPassword: 'adminPass1234', newPassword: 'newPass5678'
     }, 'merchant-local-token');
     assert(devReject.status === 403, 'dev fallback 改密 → 403 (拒绝)');
 
-    // 真 token 改密 - 但本会话已被 [5] logout。需要重登录,但限速桶仍存在。
-    // 跳过真 token 路径的 e2e(已在 mock 阶段后做单元测):
-    // 直接验证 service 行为:对真 username 做改密然后回滚
+    // 直接 service 层验证 (避开 [3] 留下的限速桶):
+    // - 改密成功
+    // - 改密后清空该 merchant_id 下的所有 session
+    // - 旧密码验证失败,新密码验证通过
     const {
       findMerchantByUsername,
       changePassword: changePw
@@ -135,19 +180,45 @@ async function main() {
     const m = findMerchantByUsername('admin');
     assert(!!m, 'admin 账号存在');
 
-    // 改密
     changePw(m.id, 'adminPass1234', 'tempPass9999');
-    // 用新密码哈希能验
     const { verifyPassword } = require('./src/services/merchantAuth');
     const row = require('./src/db').db.prepare('SELECT password_hash FROM merchants WHERE id = ?').get(m.id);
     assert(verifyPassword('tempPass9999', row.password_hash), '新密码验证成功');
     assert(!verifyPassword('adminPass1234', row.password_hash), '旧密码验证失败');
-    // 改密后所有 session 应被清 (one-shot logout)
+
     const sessCount = require('./src/db').db.prepare('SELECT COUNT(*) AS n FROM merchant_sessions WHERE merchant_id = ?').get(m.id).n;
     assert(sessCount === 0, '改密后所有 session 被清');
 
-    // 回滚 - 注意新密码是 tempPass9999
+    // 回滚
     changePw(m.id, 'tempPass9999', 'adminPass1234');
+
+    // [6] 的多端 session 已经被这次改密清掉了,补一次重建,让后续测试稳定
+    const { createSession: cs2 } = require('./src/services/merchantAuth');
+    cs2(m.id, '192.168.1.10', 'Chrome/PC');
+    cs2(m.id, '10.0.0.5', 'iPhone/Mobile');
+  });
+
+  await runStage('11. 多端管理: revoke-others', async () => {
+    // 当前账号应有 2 个 session (来自 [7] 重建)。拿其中一个 token 调 revoke-others,
+    // 应只保留请求所用 token 自身
+    const { listSessions: ls, findMerchantByToken } = require('./src/services/merchantAuth');
+    const { db } = require('./src/db');
+    const m = db.prepare('SELECT id FROM merchants WHERE username = ?').get('admin');
+
+    // 找一个 token 来代表"当前客户端"
+    const tokens = db.prepare('SELECT token FROM merchant_sessions WHERE merchant_id = ? LIMIT 2').all(m.id);
+    assert(tokens.length >= 2, '至少有 2 个 session 可以测');
+
+    // 第一次 revoke-others,保留 token[0]
+    const { revokeAllOtherSessions: rao } = require('./src/services/merchantAuth');
+    const n1 = rao(m.id, tokens[0].token);
+    assert(n1 >= 1, 'revoke-others 至少删除 1 条');
+
+    // 现在只应剩 1 条
+    const after = db.prepare('SELECT COUNT(*) AS n FROM merchant_sessions WHERE merchant_id = ?').get(m.id).n;
+    assert(after === 1, '剩下 1 条 session');
+    const remaining = db.prepare('SELECT token FROM merchant_sessions WHERE merchant_id = ?').get(m.id);
+    assert(remaining.token === tokens[0].token, '保留下来的是当前 token');
   });
 
   await runStage('8. dev fallback 在 dev 模式下可用', async () => {

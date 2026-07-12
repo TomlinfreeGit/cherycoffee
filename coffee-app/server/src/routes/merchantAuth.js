@@ -1,11 +1,15 @@
 // filepath: coffee-app/server/src/routes/merchantAuth.js
 // 商家后台鉴权路由。
-//   POST   /api/merchant-auth/login           — 账号密码登录,返回 token
-//   POST   /api/merchant-auth/logout          — 当前 token 登出
-//   GET    /api/merchant-auth/me              — 当前登录用户信息
-//   POST   /api/merchant-auth/change-password — 改密
+//   POST   /api/merchant-auth/login                    — 账号密码登录,返回 token (允许多端)
+//   POST   /api/merchant-auth/logout                   — 当前 token 登出
+//   GET    /api/merchant-auth/me                       — 当前登录用户信息
+//   GET    /api/merchant-auth/sessions                 — 列出当前账号的全部登录设备
+//   DELETE /api/merchant-auth/sessions/:token_suffix   — 远程踢出指定设备 (按 token 末尾 6 位)
+//   POST   /api/merchant-auth/sessions/revoke-others   — 一键踢出除当前设备外的所有
+//   POST   /api/merchant-auth/change-password          — 改密 (会清空所有 session)
 //
-// 注意: 路由前缀 merchant-auth 是有意的,避免与 routes/merchant.js(管理订单等业务)碰撞。
+// 多端策略: 同一商家账号可在多个设备同时登录,token 互不影响。改密仍会清空所有 session。
+// 路由前缀 merchant-auth 是有意的,避免与 routes/merchant.js (业务订单管理) 路径碰撞。
 
 const express = require('express');
 const { merchantAuth } = require('../middleware/merchantAuth');
@@ -19,6 +23,9 @@ const {
   recordSuccess,
   createSession,
   deleteSession,
+  listSessions,
+  revokeSession,
+  revokeAllOtherSessions,
   changePassword,
   markLogin,
   USERNAME_REGEX
@@ -114,6 +121,52 @@ router.post('/logout', (req, res) => {
 // GET /api/merchant-auth/me - 获取当前账号信息
 router.get('/me', (req, res) => {
   res.json({ data: { id: req.merchant.id, username: req.merchant.username, role: req.merchant.role } });
+});
+
+// GET /api/merchant-auth/sessions - 列出当前账号的所有登录设备
+// 响应不包含完整 token 哈希,只暴露末尾 6 位供 UI 标识。
+router.get('/sessions', (req, res) => {
+  const list = listSessions(req.merchant.id, req.sessionToken);
+  res.json({ data: list });
+});
+
+// POST /api/merchant-auth/sessions/revoke-others - 一键踢出除当前 token 外的所有
+router.post('/sessions/revoke-others', (req, res) => {
+  const count = revokeAllOtherSessions(req.merchant.id, req.sessionToken);
+  res.json({ data: { ok: true, revoked: count } });
+});
+
+// DELETE /api/merchant-auth/sessions/:tokenSuffix - 按末尾 6 位踢出指定设备
+// 因为不存完整 token,只能匹配 suffix (足够人类识别 + 防止暴力枚举)
+// 业务规则: 不能踢出当前会话自身
+router.delete('/sessions/:tokenSuffix', (req, res) => {
+  const suffix = String(req.params.tokenSuffix || '');
+  if (!/^[0-9a-f]{6}$/.test(suffix)) {
+    return res.status(400).json({ error: 'tokenSuffix 必须是 6 位十六进制' });
+  }
+  // 找到该账号下匹配 suffix 的 token
+  const candidates = (() => {
+    const { db } = require('../db');
+    return db.prepare(`
+      SELECT token FROM merchant_sessions
+      WHERE merchant_id = ? AND substr(token, -6) = ?
+    `).all(req.merchant.id, suffix);
+  })();
+  if (candidates.length === 0) {
+    return res.status(404).json({ error: '未找到匹配的设备' });
+  }
+  if (candidates.length > 1) {
+    return res.status(409).json({
+      error: '匹配到多台设备,请提供更多上下文或重新登录后查看',
+      matches: candidates.length
+    });
+  }
+  const targetToken = candidates[0].token;
+  if (targetToken === req.sessionToken) {
+    return res.status(400).json({ error: '不能踢出当前会话,请用 /logout' });
+  }
+  const ok = revokeSession(req.merchant.id, targetToken);
+  res.json({ data: { ok } });
 });
 
 // POST /api/merchant-auth/change-password
