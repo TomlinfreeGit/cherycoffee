@@ -56,6 +56,13 @@
     <text>💡</text>
     <text>请到店凭取餐号取餐，订单状态更新时会自动刷新</text>
   </view>
+
+  <!-- 仅 pending 订单显示底部操作栏:立即支付 / 取消订单 -->
+  <view class="bottom-bar-placeholder" wx:if="{{order.status==='pending'}}"></view>
+  <view class="bottom-bar" wx:if="{{order.status==='pending'}}">
+    <button class="btn" bindtap="onCancel">取消订单</button>
+    <button class="btn btn-primary" bindtap="onPay" disabled="{{paying}}">立即支付</button>
+  </view>
 </view>
 
 <view class="empty" wx:else>

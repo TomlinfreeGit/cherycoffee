@@ -182,28 +182,63 @@ module.exports = {
     return request(`/orders/${id}/status`, 'PATCH', { status });
   },
 
-  // 模拟支付
-  async mockPay(orderId) {
-    return new Promise((resolve) => {
-      wx.showModal({
-        title: '模拟支付',
-        content: '本地开发环境：点击确定模拟支付成功',
-        success: async (modalRes) => {
-          if (modalRes.confirm) {
-            try {
-              await ensureLoggedIn();
-              const result = await this.updateOrderStatus(orderId, 'paid');
-              resolve(result);
-            } catch (e) {
-              wx.showToast({ title: '支付失败', icon: 'none' });
-              resolve(null);
+  // ─── 支付 ────────────────────────────────────────
+  // 调后端 /orders/:id/pay 拿到拉起支付所需的签名参数。
+  //   data.mode  : 'mock' | 'real'
+  //   data.paySign === 'mock' → 后端未配置商户号,前端走弹窗模拟
+  //   data.paySign 为真签名字符串 → 真签名的 V3 / V2 paySign
+  async preparePayParams(orderId) {
+    await ensureLoggedIn();
+    const res = await request(`/orders/${orderId}/pay`, 'POST', {});
+    return res.data;
+  },
+
+  // 拉起微信支付,成功 resolve,用户取消 reject(err.code='CANCEL')。
+  // Mock 模式: 弹窗确认,不走 wx.requestPayment。
+  requestWxPayment(params) {
+    return new Promise((resolve, reject) => {
+      if (params && params.paySign === 'mock') {
+        wx.showModal({
+          title: '模拟支付',
+          content: '本地开发模式:点击确定模拟支付成功,取消则不支付',
+          success: (modalRes) => {
+            if (modalRes.confirm) resolve({ mock: true });
+            else {
+              const e = new Error('支付已取消');
+              e.code = 'CANCEL';
+              reject(e);
             }
-          } else {
-            resolve(null);
-          }
+          },
+          fail: () => reject(new Error('模拟弹窗失败'))
+        });
+        return;
+      }
+      wx.requestPayment({
+        timeStamp: params.timeStamp,
+        nonceStr: params.nonceStr,
+        package: params.package,
+        signType: params.signType,
+        paySign: params.paySign,
+        success: (res) => resolve(res),
+        fail: (err) => {
+          const msg = (err && err.errMsg) || '支付失败';
+          const e = new Error(msg);
+          e.code = msg.includes('cancel') ? 'CANCEL' : 'FAIL';
+          e.raw = err;
+          reject(e);
         }
       });
     });
+  },
+
+  // 一站式支付: 准备参数 → 拉起支付。
+  //   成功 resolve(params);用户取消 reject('支付已取消');系统错误 reject(msg)。
+  //   后端真实模式下,成功后会异步通过回调更新订单 status='paid',前端需要在
+  //   onShow/轮询中拉一次 getOrder 同步状态。
+  async payOrder(orderId) {
+    const params = await this.preparePayParams(orderId);
+    await this.requestWxPayment(params);
+    return params;
   },
 
   // ─── 用户档案 ────────────────────────────────────

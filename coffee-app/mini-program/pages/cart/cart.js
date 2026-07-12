@@ -214,20 +214,35 @@ Page({
       });
       const order = orderRes.data;
 
-      // 模拟支付
-      const payResult = await api.mockPay(order.id);
-      if (!payResult) {
+      // 拉起微信支付。Mock 模式 (paySign==='mock') 会在 requestWxPayment 内部弹窗模拟;
+      // Real 模式: 服务端调用 V3 统一下单,回调前订单保持 pending。
+      wx.showLoading({ title: '拉起支付...', mask: true });
+      try {
+        await api.payOrder(order.id);
+        // 支付调用发起成功 → 清空购物车,跳成功页 (成功页会每 10s 拉一次订单最新状态,
+        // 真实支付模式下,等后端回调更新 status='paid' 后,UI 自然刷新为"已支付"。)
+        app.clearCart();
         wx.hideLoading();
-        this.setData({ submitting: false });
-        return;
+        wx.redirectTo({
+          url: `/pages/order-success/order-success?id=${order.id}`
+        });
+      } catch (payErr) {
+        wx.hideLoading();
+        if (payErr.code === 'CANCEL') {
+          // 用户在支付弹窗点击"取消" → 保留购物车 → 跳订单详情,用户可"继续支付"或"取消订单"
+          this.setData({ submitting: false });
+          wx.redirectTo({
+            url: `/pages/order-detail/order-detail?id=${order.id}`
+          });
+        } else {
+          this.setData({ submitting: false });
+          wx.showModal({
+            title: '支付失败',
+            content: payErr.message || '请稍后再试',
+            showCancel: false
+          });
+        }
       }
-
-      app.clearCart();
-      wx.hideLoading();
-
-      wx.redirectTo({
-        url: `/pages/order-success/order-success?id=${order.id}`
-      });
     } catch (e) {
       wx.hideLoading();
       this.setData({ submitting: false });

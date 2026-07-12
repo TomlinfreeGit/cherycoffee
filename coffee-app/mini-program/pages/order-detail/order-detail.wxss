@@ -127,3 +127,37 @@
   font-size: 24rpx;
   margin-top: 24rpx;
 }
+
+/* 底部操作栏: 立即支付 / 取消订单 (仅 pending 状态显示) */
+.bottom-bar-placeholder {
+  height: 140rpx;
+}
+
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 16rpx;
+  padding: 20rpx 24rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  background: #ffffff;
+  border-top: 1rpx solid var(--border);
+  z-index: 10;
+}
+
+.bottom-bar .btn {
+  flex: 1;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.bottom-bar .btn-primary {
+  flex: 1.6;
+}
+
+button[disabled].btn-primary {
+  opacity: 0.6;
+}
+

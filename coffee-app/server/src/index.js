@@ -18,6 +18,11 @@ const HOST = process.env.HOST || '0.0.0.0';  // Listen on all interfaces for LAN
 
 const corsOrigin = process.env.CORS_ORIGIN || '*';
 app.use(cors({ origin: corsOrigin === '*' ? true : corsOrigin.split(',') }));
+
+// 微信支付 V3 回调:必须在 app.use(express.json(...)) 之前挂 express.raw,
+// 才能拿到原始 JSON 字符串以验签。Express 会先匹配这个路径,继续 next() 才会到下面 json parser。
+app.use('/api/orders/pay/notify', express.raw({ type: '*/*', limit: '1mb' }));
+
 app.use(express.json({ limit: '1mb' }));
 
 // Serve uploaded files statically

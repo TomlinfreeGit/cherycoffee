@@ -4,6 +4,7 @@ const { db } = require('../db');
 const { generatePickupNumber } = require('../services/pickup');
 const { customerAuth, optionalCustomerAuth } = require('../middleware/auth');
 const { applyDiscount, incrementCompletedOrders } = require('../services/level');
+const wechatPay = require('../services/wechatPay');
 
 const router = express.Router();
 
@@ -194,6 +195,133 @@ router.get('/', customerAuth, (req, res) => {
     res.json({ data: rows });
   } catch (err) {
     console.error('GET /api/orders error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/orders/pay/notify — 微信支付 V3 回调 (无 auth,微信后台直接调用)
+// 顺序重要:固定路径 `/pay/notify` 必须注册在 `/:id/xxx` 动态路由之前,避免被错位匹配。
+// 入口处需挂载 express.raw,见 src/index.js。
+router.post('/pay/notify', (req, res) => {
+  try {
+    const rawBody = req.body.toString('utf8');
+    const payload = JSON.parse(rawBody);
+
+    // 只处理支付成功事件;其他事件(退款等)直接 ACK,避免微信重试
+    if (payload.event_type !== 'TRANSACTION.SUCCESS') {
+      return res.json({ code: 'SUCCESS', message: 'ignored' });
+    }
+    if (!payload.resource) {
+      throw new Error('Missing resource in notify payload');
+    }
+
+    // 验签 + AEAD_AES_256_GCM 解密
+    let decrypted;
+    try {
+      decrypted = wechatPay.verifyAndDecryptNotify(
+        req.headers.authorization,
+        rawBody,
+        payload.resource
+      );
+    } catch (err) {
+      console.error('Pay notify verify/decrypt failed:', err.message);
+      // 返回 FAIL 让微信重试
+      return res.status(401).json({ code: 'FAIL', message: err.message });
+    }
+
+    const { out_trade_no, transaction_id, trade_state } = decrypted;
+    if (trade_state !== 'SUCCESS') {
+      return res.json({ code: 'SUCCESS', message: 'trade not success' });
+    }
+
+    // pickup_number === outTradeNo (创建订单时作为商户订单号)
+    const order = db.prepare('SELECT id, status FROM orders WHERE pickup_number = ?').get(out_trade_no);
+    if (!order) {
+      console.error('Pay notify: order not found for pickup_number', out_trade_no);
+      // 找不到订单也得 ACK,避免微信无限重试 (人工介入)
+      return res.json({ code: 'SUCCESS', message: 'order not found' });
+    }
+
+    // 幂等:已支付或后续状态则跳过
+    if (order.status !== 'pending') {
+      return res.json({ code: 'SUCCESS', message: `already ${order.status}` });
+    }
+
+    db.prepare(`
+      UPDATE orders
+      SET status = 'paid', transaction_id = ?, updated_at = datetime('now', 'localtime')
+      WHERE id = ? AND status = 'pending'
+    `).run(transaction_id, order.id);
+
+    console.log(`✓ Pay notify: order #${order.id} (${out_trade_no}) → paid, tx=${transaction_id}`);
+    res.json({ code: 'SUCCESS', message: '成功' });
+  } catch (err) {
+    console.error('Pay notify handler error:', err);
+    res.status(500).json({ code: 'FAIL', message: 'Internal error' });
+  }
+});
+
+// POST /api/orders/:id/pay — 创建预付订单,返回小程序拉起支付所需的签名参数
+// 路由位置:放在 GET /:id 之前;若已经处于非 pending 状态(已支付、已取消)返回 403。
+router.post('/:id/pay', customerAuth, async (req, res) => {
+  try {
+    const order = db.prepare('SELECT * FROM orders WHERE id = ? AND openid = ?').get(req.params.id, req.openid);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.status !== 'pending') {
+      return res.status(403).json({ error: `Order is not payable (status=${order.status})` });
+    }
+    if (!req.openid) {
+      return res.status(400).json({ error: 'No openid bound to session, cannot initialize WeChat Pay' });
+    }
+
+    // 模式自动切换:商户未配置 → mock (前端弹窗模拟成功)
+    if (wechatPay.currentMode() === 'mock') {
+      const params = wechatPay.buildMockPayParams();
+      return res.json({
+        data: {
+          mode: 'mock',
+          orderId: order.id,
+          ...params
+        }
+      });
+    }
+
+    // Real 模式:服务端调用 V3 JSAPI 统一下单
+    try {
+      const amountFen = Math.round(parseFloat(order.total_amount) * 100);
+      const notifyUrl = process.env.WECHAT_NOTIFY_URL;
+      if (!notifyUrl) {
+        return res.status(500).json({ error: 'WECHAT_NOTIFY_URL is not configured on the server' });
+      }
+
+      const { prepayId } = await wechatPay.createJsapiOrder({
+        openid: req.openid,
+        outTradeNo: order.pickup_number,
+        description: `咖啡订单 ${order.pickup_number}`,
+        totalFen: amountFen,
+        notifyUrl
+      });
+
+      // 缓存 prepay_id;回调成功后会被真实 transaction_id 覆盖
+      db.prepare(`UPDATE orders SET transaction_id = ? WHERE id = ?`).run(prepayId, order.id);
+
+      const params = wechatPay.buildClientPayParams(prepayId);
+      res.json({
+        data: {
+          mode: 'real',
+          orderId: order.id,
+          ...params
+        }
+      });
+    } catch (payErr) {
+      console.error('WeChat Pay create order error:', payErr);
+      const msg = payErr.isNetworkError
+        ? '微信支付网络异常,请稍后再试'
+        : `微信支付下单失败: ${payErr.wechatMsg || payErr.message}`;
+      res.status(500).json({ error: msg });
+    }
+  } catch (err) {
+    console.error('POST /api/orders/:id/pay error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
