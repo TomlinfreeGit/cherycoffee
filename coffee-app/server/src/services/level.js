@@ -20,7 +20,10 @@ const { db } = require('../db');
 const DEFAULTS = Object.freeze({
   level_orders_required: 10,
   level_discount_increment: 0.01,
-  min_discount: 0.80
+  min_discount: 0.80,
+  // 商家后台订单列表自动刷新间隔 (毫秒)。范围 5s~10min。
+  // 商家可在"系统设置"里调整这个值,不需要重启服务。
+  order_auto_refresh_ms: 10000
 });
 
 /**
@@ -35,12 +38,15 @@ function getSetting(key) {
 
 /**
  * Get all level/discount settings as an object.
+ * 现在也包含前端可调的非会员类设置 (如自动刷新间隔),
+ * 这样 /api/merchant/settings 一次性把全部可配置项推给前端。
  */
 function getLevelSettings() {
   return {
     level_orders_required: getSetting('level_orders_required'),
     level_discount_increment: getSetting('level_discount_increment'),
-    min_discount: getSetting('min_discount')
+    min_discount: getSetting('min_discount'),
+    order_auto_refresh_ms: getSetting('order_auto_refresh_ms')
   };
 }
 

@@ -15,14 +15,18 @@ const router = express.Router();
 const EDITABLE_KEYS = new Set([
   'level_orders_required',
   'level_discount_increment',
-  'min_discount'
+  'min_discount',
+  // 商家后台订单列表自动刷新间隔 (毫秒)
+  'order_auto_refresh_ms'
 ]);
 
 // Numeric ranges (bounds to prevent silly values)
 const RANGES = {
   level_orders_required: { min: 1, max: 10000, integer: true },
   level_discount_increment: { min: 0.001, max: 0.5 },
-  min_discount: { min: 0.1, max: 1.0 }
+  min_discount: { min: 0.1, max: 1.0 },
+  // 5 秒 ~ 10 分钟 (防止瞬秒高频或后端僵死的极端值)
+  order_auto_refresh_ms: { min: 5000, max: 600000, integer: true }
 };
 
 // GET /api/settings - public read of customer-relevant settings.

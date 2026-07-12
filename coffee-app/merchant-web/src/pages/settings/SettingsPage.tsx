@@ -4,6 +4,7 @@
 //   - level_orders_required: 每 N 单升一级
 //   - level_discount_increment: 每级折扣增量 (0.01 = 99 折)
 //   - min_discount: 最低折扣上限 (0.80 = 8 折)
+//   - order_auto_refresh_ms: 订单列表自动刷新间隔 (毫秒, 默认 10000 = 10s)
 
 import { useEffect, useState } from 'react';
 import { api, LevelSettings } from '../../api/client';
@@ -12,7 +13,8 @@ import { showToast } from '../../components/Toast';
 const DEFAULTS: LevelSettings = {
   level_orders_required: 10,
   level_discount_increment: 0.01,
-  min_discount: 0.8
+  min_discount: 0.8,
+  order_auto_refresh_ms: 10000
 };
 
 export default function SettingsPage() {
@@ -46,11 +48,17 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await api.updateSettings({
+      const refreshMs = Number(settings.order_auto_refresh_ms);
+      const body: Partial<LevelSettings> = {
         level_orders_required: Number(settings.level_orders_required),
         level_discount_increment: Number(settings.level_discount_increment),
         min_discount: Number(settings.min_discount)
-      });
+      };
+      // 仅当数字合法且与默认不一样时才提交 (避免空值触发后端 400)
+      if (Number.isFinite(refreshMs) && refreshMs >= 5000 && refreshMs <= 600000) {
+        body.order_auto_refresh_ms = refreshMs;
+      }
+      const res = await api.updateSettings(body);
       setSettings(res.data);
       setOriginal(res.data);
       showToast('已保存设置', 'success');
@@ -132,6 +140,25 @@ export default function SettingsPage() {
             <div className="field-hint">
               范围 0.10–1.00。例 0.80 = 最低按 8 折出售，不会更便宜。
               （1.00 = 不打折）
+            </div>
+          </label>
+
+          <label className="field">
+            <div className="field-label">订单列表自动刷新间隔</div>
+            <input
+              type="number"
+              min={5}
+              max={600}
+              step={1}
+              value={Math.round(Number(settings.order_auto_refresh_ms ?? DEFAULTS.order_auto_refresh_ms) / 1000)}
+              onChange={(e) => {
+                const sec = Math.max(5, Math.min(600, Number(e.target.value) || 10));
+                setSettings({ ...settings, order_auto_refresh_ms: sec * 1000 });
+              }}
+            />
+            <div className="field-hint">
+              单位:秒。范围 5–600 (10 分钟)。商家后台订单列表会按这个间隔自动拉新数据。
+              默认 10 秒。保存后立即生效,无需重启。
             </div>
           </label>
 

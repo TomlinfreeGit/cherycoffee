@@ -1,31 +1,31 @@
 // filepath: coffee-app/merchant-web/src/App.tsx
 import { Routes, Route, Navigate, NavLink, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import LoginPage from './pages/login/LoginPage';
 import ProductsPage from './pages/products/ProductsPage';
 import OrdersPage from './pages/orders/OrdersPage';
 import UsersPage from './pages/users/UsersPage';
 import CategoriesPage from './pages/categories/CategoriesPage';
 import SettingsPage from './pages/settings/SettingsPage';
-import { auth } from './api/auth';
+import { auth, MerchantUser } from './api/auth';
+import { onUnauthorized } from './api/client';
 import { ToastContainer } from './components/Toast';
+import { showToast } from './components/Toast';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const token = localStorage.getItem('merchant_token');
+  // 用 auth.isLoggedIn() 检查更可靠: 会顺带做 token 过期判断。
+  const logged = auth.isLoggedIn();
   const navigate = useNavigate();
   useEffect(() => {
-    if (!token) navigate('/login', { replace: true });
-  }, [token, navigate]);
-  if (!token) return null;
+    if (!logged) navigate('/login', { replace: true });
+  }, [logged, navigate]);
+  if (!logged) return null;
   return <>{children}</>;
 }
 
-function Layout({ children }: { children: React.ReactNode }) {
+function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: () => void }) {
   const navigate = useNavigate();
-  const logout = () => {
-    auth.logout();
-    navigate('/login');
-  };
+  const [user, setUser] = useState<MerchantUser | null>(auth.getUser());
 
   return (
     <div className="layout">
@@ -47,7 +47,17 @@ function Layout({ children }: { children: React.ReactNode }) {
           <NavLink to="/settings" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
             等级设置
           </NavLink>
-          <button onClick={logout} className="btn btn-ghost">退出</button>
+          {user && <span style={{ color: 'var(--muted)', fontSize: 13, alignSelf: 'center' }}>{user.username}</span>}
+          <button
+            onClick={async () => {
+              await auth.logout(true);
+              onLogout();
+              navigate('/login');
+            }}
+            className="btn btn-ghost"
+          >
+            退出
+          </button>
         </nav>
       </header>
       <main className="main">{children}</main>
@@ -56,9 +66,15 @@ function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  // Initialize auth (sets default password on first run)
+  // 订阅 401: 任何 request.js 收到 401 → 自动 logout + 跳 /login + 提示
   useEffect(() => {
-    auth.init();
+    const off = onUnauthorized(() => {
+      showToast('登录已过期,请重新登录', 'error');
+      // 用 hash 路由跳转避免循环依赖 (auth 已经清完本地,这里只是 UI)
+      window.location.hash = '#/login';
+      window.location.reload();
+    });
+    return off;
   }, []);
 
   return (
@@ -69,7 +85,7 @@ function App() {
           path="/orders"
           element={
             <RequireAuth>
-              <Layout>
+              <Layout onLogout={() => {}}>
                 <OrdersPage />
               </Layout>
             </RequireAuth>
@@ -79,7 +95,7 @@ function App() {
           path="/products"
           element={
             <RequireAuth>
-              <Layout>
+              <Layout onLogout={() => {}}>
                 <ProductsPage />
               </Layout>
             </RequireAuth>
@@ -89,7 +105,7 @@ function App() {
           path="/users"
           element={
             <RequireAuth>
-              <Layout>
+              <Layout onLogout={() => {}}>
                 <UsersPage />
               </Layout>
             </RequireAuth>
@@ -99,7 +115,7 @@ function App() {
           path="/categories"
           element={
             <RequireAuth>
-              <Layout>
+              <Layout onLogout={() => {}}>
                 <CategoriesPage />
               </Layout>
             </RequireAuth>
@@ -109,7 +125,7 @@ function App() {
           path="/settings"
           element={
             <RequireAuth>
-              <Layout>
+              <Layout onLogout={() => {}}>
                 <SettingsPage />
               </Layout>
             </RequireAuth>

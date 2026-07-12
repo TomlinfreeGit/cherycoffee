@@ -1,24 +1,59 @@
 // filepath: coffee-app/merchant-web/src/api/client.ts
 import { API_BASE } from './config';
+import { auth } from './auth';
 
 const BASE = API_BASE;
 
-// Merchant token for local development. In production this should be obtained
-// from a real login flow with proper credential storage.
-const MERCHANT_TOKEN = 'merchant-local-token';
+// 401 自动登出回调: 业务侧可以监听这个回调做跳转到 /login 等动作。
+// 这样 client.ts 不强依赖于 react-router,在 App.tsx 里 subscribe 这个事件。
+type UnauthorizedHandler = () => void;
+const unauthorizedHandlers: UnauthorizedHandler[] = [];
+export function onUnauthorized(handler: UnauthorizedHandler): () => void {
+  unauthorizedHandlers.push(handler);
+  return () => {
+    const i = unauthorizedHandlers.indexOf(handler);
+    if (i >= 0) unauthorizedHandlers.splice(i, 1);
+  };
+}
+function emitUnauthorized() {
+  for (const h of unauthorizedHandlers) {
+    try { h(); } catch (_) { /* 隔离每个 handler 的异常 */ }
+  }
+}
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+/**
+ * 拿到当前有效的 Bearer token。
+ * 仅从 localStorage 读,绝不在前端固化任何 token。
+ */
+function getBearer(): string | null {
+  return auth.getToken();
+}
+
+async function request<T>(method: string, path: string, body?: unknown, opts: { noAuth?: boolean } = {}): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  // noAuth=true: 用于登录、调不需要鉴权的接口
+  if (!opts.noAuth) {
+    const token = getBearer();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${MERCHANT_TOKEN}`
-    },
+    headers,
     body: body ? JSON.stringify(body) : undefined
   });
+  if (res.status === 401 && !opts.noAuth) {
+    // 清理本地 token,通知监听器(跳登录页)
+    await auth.logout(false);
+    emitUnauthorized();
+    const err = new Error('Unauthorized');
+    (err as any).status = 401;
+    throw err;
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'Request failed');
+    const e = new Error(err.error || 'Request failed');
+    (e as any).status = res.status;
+    throw e;
   }
   if (res.status === 204) return undefined as unknown as T;
   return res.json();
@@ -81,6 +116,8 @@ export interface LevelSettings {
   level_orders_required: number;
   level_discount_increment: number;
   min_discount: number;
+  // 商家后台订单列表自动刷新间隔 (毫秒)。默认 10000 = 10 秒。
+  order_auto_refresh_ms?: number;
 }
 
 export interface UserListResult {
@@ -151,9 +188,15 @@ export const api = {
     request<{ data: Order }>('PATCH', `/merchant/orders/${id}/status`, { status }),
 
   revealFullPhone: async (id: number): Promise<string> => {
+    const token = getBearer();
     const res = await fetch(`${BASE}/merchant/orders/${id}/full-phone`, {
-      headers: { Authorization: `Bearer ${MERCHANT_TOKEN}` }
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
     });
+    if (res.status === 401) {
+      await auth.logout(false);
+      emitUnauthorized();
+      throw new Error('Unauthorized');
+    }
     if (!res.ok) throw new Error('Failed to reveal phone');
     const data = await res.json();
     return data.data.customer_phone;

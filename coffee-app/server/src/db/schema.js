@@ -111,6 +111,39 @@ CREATE TABLE IF NOT EXISTS categories (
 
 CREATE INDEX IF NOT EXISTS idx_categories_sort ON categories(sort_order);
 
+-- 管理员表 (商家后台登录账号)
+-- password_hash: scrypt 派生,格式 'scrypt$N$r$p$saltB64$hashB64'
+-- role: 'owner' = 超级管理员 (唯一);其他值 = 具备同级别权限但可扩展为更细粒度
+CREATE TABLE IF NOT EXISTS merchants (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'owner',
+  disabled INTEGER NOT NULL DEFAULT 0,
+  last_login_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+
+-- 管理员 session 表 (代替硬编码 bearer token)
+-- token: 服务端生成的不可预测随机串,32 字节 hex
+-- expires_at: 绝对过期时间 (12h 可配置)
+-- last_seen_at: 用于滑动续期 (每次成功鉴权后更新)
+-- ip / user_agent: 可选审计字段
+CREATE TABLE IF NOT EXISTS merchant_sessions (
+  token TEXT PRIMARY KEY,
+  merchant_id INTEGER NOT NULL,
+  expires_at TEXT NOT NULL,
+  last_seen_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  ip TEXT,
+  user_agent TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  FOREIGN KEY (merchant_id) REFERENCES merchants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_merchant_sessions_merchant ON merchant_sessions(merchant_id);
+CREATE INDEX IF NOT EXISTS idx_merchant_sessions_expires ON merchant_sessions(expires_at);
+
 -- 种子分类：如果表为空，插入默认三类
 `;
 

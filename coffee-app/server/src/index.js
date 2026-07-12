@@ -7,10 +7,16 @@ const productsRouter = require('./routes/products');
 const ordersRouter = require('./routes/orders');
 const sessionsRouter = require('./routes/sessions');
 const merchantRouter = require('./routes/merchant');
+const merchantAuthRouter = require('./routes/merchantAuth');
 const uploadsRouter = require('./routes/uploads');
 const usersRouter = require('./routes/users');
 const categoriesRouter = require('./routes/categories');
 const settingsRouter = require('./routes/settings');
+
+// 初始化商家鉴权子系统 (若 env 配置了 MERCHANT_ADMIN_USERNAME/PASSWORD 会自动种子账号;
+// 该副作用必须在加载 merchantAuth 中间件之前完成,否则 middleware 启动 WARN 会重复)
+// 副作用: 服务启动 → 自动建表 → 自动 hash 检查 seed → 显示 WARN。
+require('./middleware/merchantAuth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +24,20 @@ const HOST = process.env.HOST || '0.0.0.0';  // Listen on all interfaces for LAN
 
 const corsOrigin = process.env.CORS_ORIGIN || '*';
 app.use(cors({ origin: corsOrigin === '*' ? true : corsOrigin.split(',') }));
+
+// 加固基础安全响应头 (手动实现,避免引入 helmet)
+// 不强制使用 HSTS (开发用 http),仅做语义必要项
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'same-origin');
+  res.setHeader('X-Frame-Options', 'DENY');
+  // Permissions-Policy 禁止摄像头/麦克风/定位等敏感能力
+  res.setHeader(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=()'
+  );
+  next();
+});
 
 // 微信支付 V3 回调:必须在 app.use(express.json(...)) 之前挂 express.raw,
 // 才能拿到原始 JSON 字符串以验签。Express 会先匹配这个路径,继续 next() 才会到下面 json parser。
@@ -58,6 +78,8 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/sessions', sessionsRouter);
+// merchantAuth 路由必须在 /api/merchant 之前挂 (否则会被业务路由的 middleware 拦截)
+app.use('/api/merchant-auth', merchantAuthRouter);
 app.use('/api/merchant', merchantRouter);
 app.use('/api/uploads', uploadsRouter);
 app.use('/api/users', usersRouter);

@@ -30,6 +30,8 @@ const NEXT_STATUS: Partial<Record<Order['status'], { status: Order['status']; la
 };
 
 const ORDER_PAGE_SIZE = 10;
+// 自动刷新间隔默认值 (毫秒),与服务端 defaults.order_auto_refresh_ms 保持一致
+const DEFAULT_AUTO_REFRESH_MS = 10000;
 
 export default function OrdersPage() {
   const [filter, setFilter] = useState<FilterStatus>('active');
@@ -37,6 +39,9 @@ export default function OrdersPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  // 自动刷新间隔 (毫秒),默认 10 秒。商家可在系统设置里改。
+  // 当服务端返回值时,这里会同步刷新。
+  const [autoRefreshMs, setAutoRefreshMs] = useState<number>(DEFAULT_AUTO_REFRESH_MS);
   // 顶部 KPI 卡片:由独立接口 /orders/stats 提供,与分页 filter 独立
   const [stats, setStats] = useState({ active: 0, preparing: 0, ready: 0, today: 0 });
 
@@ -84,18 +89,37 @@ export default function OrdersPage() {
     refreshStats();
   }, [refreshStats]);
 
-  // 自动刷新:每 5s 同时刷新列表第一页 + 统计(因为状态会变)
+  // 自动刷新:同时刷新列表第一页 + 统计(因为状态会变)
   // 已加载第二页之后的页面不刷新,避免跳到顶部让用户丢失阅读位置
+  // 间隔由服务端设置决定 (默认 10 秒),商家在"系统设置"调整后即生效
   const loadRef = useRef(list.refresh);
   loadRef.current = list.refresh;
+
+  // 进入页面时,主动拉一次最新设置 (拿到服务端配置的刷新间隔)
+  useEffect(() => {
+    let cancelled = false;
+    api.getSettings()
+      .then((res) => {
+        if (cancelled) return;
+        const ms = Number(res.data.order_auto_refresh_ms);
+        if (Number.isFinite(ms) && ms >= 5000) setAutoRefreshMs(ms);
+      })
+      .catch(() => {
+        // 静默失败:仍用本地默认值
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     if (!autoRefresh) return;
     const t = setInterval(() => {
       loadRef.current();
       refreshStats();
-    }, 5000);
+    }, autoRefreshMs);
     return () => clearInterval(t);
-  }, [autoRefresh, refreshStats]);
+  }, [autoRefresh, refreshStats, autoRefreshMs]);
 
   // 后端已经按 status 过滤过了,这里直接用 items 渲染
   const filtered = orders;
@@ -161,7 +185,7 @@ export default function OrdersPage() {
                 onChange={(e) => setAutoRefresh(e.target.checked)}
                 style={{ width: 'auto' }}
               />
-              自动刷新 (5s)
+              自动刷新 ({Math.max(1, Math.round(autoRefreshMs / 1000))}s)
             </label>
             <button className="btn btn-sm" onClick={list.refresh}>
               ↻ 刷新
