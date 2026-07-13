@@ -1,8 +1,49 @@
 // filepath: coffee-app/server/src/routes/products.js
+const path = require('node:path');
+const fs = require('node:fs');
 const express = require('express');
 const { db } = require('../db');
 
 const router = express.Router();
+
+// Same directory as routes/uploads.js: <server>/uploads
+const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads');
+
+/**
+ * Best-effort: delete an uploaded image file IF no product row still references it.
+ * - Only acts on URLs shaped like `/uploads/<basename>` (no path traversal).
+ * - Never throws; failures are logged but do not affect the calling request.
+ *
+ * @param {string|null|undefined} url  The image_url value to consider removing.
+ */
+function removeUploadIfOrphan(url) {
+  try {
+    if (!url || typeof url !== 'string') return;
+    // Only handle our own /uploads/ URLs; ignore external/data URLs.
+    if (!url.startsWith('/uploads/')) return;
+
+    const filename = path.basename(url);
+    if (!filename || filename === url) return; // basename() should always strip path
+
+    // Safety: ensure resolved path stays inside UPLOADS_DIR
+    const filepath = path.join(UPLOADS_DIR, filename);
+    const resolved = path.resolve(filepath);
+    if (!resolved.startsWith(path.resolve(UPLOADS_DIR) + path.sep)) return;
+
+    if (!fs.existsSync(resolved)) return;
+
+    // Don't delete a file that's still referenced by any product row.
+    const refCount = db
+      .prepare('SELECT COUNT(*) AS n FROM products WHERE image_url = ?')
+      .get(url).n;
+    if (refCount > 0) return;
+
+    fs.unlinkSync(resolved);
+    console.log(`[products] removed orphan upload: ${filename}`);
+  } catch (err) {
+    console.warn(`[products] failed to remove orphan upload (${url}):`, err.message);
+  }
+}
 
 // GET /api/products - list all products (with optional category filter, availableOnly)
 router.get('/', (req, res) => {
@@ -94,12 +135,16 @@ router.patch('/:id', (req, res) => {
     const allowed = ['name', 'category', 'price', 'description', 'image_url', 'available', 'sort_order', 'support_temperature'];
     const updates = [];
     const params = [];
+    let imageChanged = false;
 
     for (const key of allowed) {
       if (key in req.body) {
         let val = req.body[key];
         if (key === 'available' || key === 'support_temperature') {
           val = val ? 1 : 0;
+        }
+        if (key === 'image_url' && val !== existing.image_url) {
+          imageChanged = true;
         }
         updates.push(`${key} = ?`);
         params.push(val);
@@ -117,6 +162,14 @@ router.patch('/:id', (req, res) => {
 
     const updated = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
     res.json({ data: updated });
+
+    // After successful response: best-effort cleanup of the previous image.
+    // Skipped if the new value is null/empty, or equal to the old one, or
+    // a non-/uploads/ URL (e.g. external link). Safe even if other products
+    // still reference the same file — orphan check prevents misuse.
+    if (imageChanged) {
+      removeUploadIfOrphan(existing.image_url);
+    }
   } catch (err) {
     console.error('PATCH /api/products/:id error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -126,11 +179,21 @@ router.patch('/:id', (req, res) => {
 // DELETE /api/products/:id
 router.delete('/:id', (req, res) => {
   try {
+    const existing = db.prepare('SELECT image_url FROM products WHERE id = ?').get(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
     const result = db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Product not found' });
     }
     res.status(204).end();
+
+    // After successful delete: best-effort cleanup of the product's image.
+    // Orphan check is still run — if another product shares the same URL,
+    // the file is preserved.
+    removeUploadIfOrphan(existing.image_url);
   } catch (err) {
     console.error('DELETE /api/products/:id error:', err);
     res.status(500).json({ error: 'Internal server error' });
