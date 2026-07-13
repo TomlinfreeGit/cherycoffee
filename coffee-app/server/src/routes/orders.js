@@ -10,6 +10,31 @@ const router = express.Router();
 
 const VALID_STATUSES = ['pending', 'paid', 'preparing', 'ready', 'completed', 'cancelled', 'failed'];
 
+// Allowed temperature labels. Kept small + stable so the merchant UI and
+// the customer UI both agree on the canonical set. If we ever need "warm"
+// or "less ice", extend this list AND update menu.wxml / ProductsPage.tsx
+// in lockstep.
+const ALLOWED_TEMPERATURES = new Set(['热', '冷']);
+const TEMP_REGEX = /^[\u4e00-\u9fa5]{1,4}$/;
+
+function normalizeOptions(rawOptions, product) {
+  // Returns the persisted options string for order_items.options, or an
+  // Error describing why the request is invalid.
+  const opts = (rawOptions && typeof rawOptions === 'object') ? rawOptions : {};
+  if (product.support_temperature) {
+    const t = opts.temperature;
+    if (typeof t !== 'string' || !TEMP_REGEX.test(t)) {
+      return { error: `商品「${product.name}」需要选择温度（热/冷）` };
+    }
+    if (!ALLOWED_TEMPERATURES.has(t)) {
+      return { error: `商品「${product.name}」的温度仅支持 热/冷，收到「${t}」` };
+    }
+    return { value: t };
+  }
+  // Product doesn't support options: silently drop any choice the client sent.
+  return { value: null };
+}
+
 // Phone validation: 11-digit mainland China mobile number
 const PHONE_REGEX = /^1[3-9]\d{9}$/;
 
@@ -64,6 +89,13 @@ router.post('/', optionalCustomerAuth, (req, res) => {
         return res.status(400).json({ error: `Product ${item.product_id} not available` });
       }
 
+      // Resolve and validate per-line options (e.g. temperature). Done
+      // BEFORE price math so a 400 short-circuits cleanly.
+      const opt = normalizeOptions(item.options, product);
+      if (opt.error) {
+        return res.status(400).json({ error: opt.error });
+      }
+
       const qty = parseInt(item.quantity, 10);
       // Apply level discount to the unit price
       const discounted = applyDiscount(product.price, userLevel);
@@ -79,7 +111,8 @@ router.post('/', optionalCustomerAuth, (req, res) => {
         unit_price: unitPrice,
         original_unit_price: discounted.original,
         subtotal,
-        level_applied: userLevel
+        level_applied: userLevel,
+        options: opt.value
       });
     }
 
@@ -102,12 +135,21 @@ router.post('/', optionalCustomerAuth, (req, res) => {
       const orderId = orderResult.lastInsertRowid;
 
       const insertItem = db.prepare(`
-        INSERT INTO order_items (order_id, product_id, product_name, product_image_url, quantity, unit_price, subtotal)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO order_items (order_id, product_id, product_name, product_image_url, quantity, unit_price, subtotal, options)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       for (const item of validatedItems) {
-        insertItem.run(orderId, item.product_id, item.product_name, item.product_image_url, item.quantity, item.unit_price, item.subtotal);
+        insertItem.run(
+          orderId,
+          item.product_id,
+          item.product_name,
+          item.product_image_url,
+          item.quantity,
+          item.unit_price,
+          item.subtotal,
+          item.options
+        );
       }
 
       db.exec('COMMIT');

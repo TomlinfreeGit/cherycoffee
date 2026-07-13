@@ -84,6 +84,21 @@
   flex: 1;
   font-size: 28rpx;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+/* 温度标签 — 与购物车页保持一致 */
+.item-temp {
+  display: inline-block;
+  padding: 2rpx 12rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  border-radius: 6rpx;
+  background: var(--primary);
+  color: #fff;
+  line-height: 1.4;
 }
 
 .item-meta {

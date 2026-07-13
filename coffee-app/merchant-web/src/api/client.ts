@@ -68,6 +68,8 @@ export interface Product {
   image_url: string | null;
   available: number;
   sort_order: number;
+  // 1 = 顾客加购前必须选冷/热;0 = 无需选项 (默认)
+  support_temperature: number;
 }
 
 export interface OrderItem {
@@ -77,6 +79,8 @@ export interface OrderItem {
   quantity: number;
   unit_price: number;
   subtotal: number;
+  // 顾客选择的选项,如 '热' / '冷' (后端在商品支持时才填,否则为 null)
+  options: string | null;
 }
 
 export interface Order {

@@ -55,6 +55,21 @@
   font-weight: 500;
   flex: 1;
   margin-right: 16rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+/* 温度小标签 — 跟商品详情弹窗里的 chip 保持一致的视觉语言 */
+.cart-item-temp {
+  display: inline-block;
+  padding: 4rpx 14rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  border-radius: 8rpx;
+  background: var(--primary);
+  color: #fff;
+  line-height: 1.4;
 }
 
 .cart-item-price {

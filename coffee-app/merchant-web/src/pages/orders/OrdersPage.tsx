@@ -391,6 +391,23 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
                 <tr key={item.id}>
                   <td>
                     {item.product_name}
+                    {item.options && (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          marginLeft: 8,
+                          padding: '1px 8px',
+                          fontSize: 12,
+                          fontWeight: 500,
+                          borderRadius: 4,
+                          background: 'var(--primary)',
+                          color: '#fff'
+                        }}
+                        title="顾客选择的选项"
+                      >
+                        {item.options}
+                      </span>
+                    )}
                     <span style={{ color: 'var(--muted)', marginLeft: 8 }}>x{item.quantity}</span>
                   </td>
                   <td style={{ textAlign: 'right' }}>{formatPrice(item.subtotal)}</td>

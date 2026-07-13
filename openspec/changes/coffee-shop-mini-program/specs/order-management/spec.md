@@ -77,3 +77,23 @@ The system SHALL allow merchants to update order status.
 - **WHEN** merchant attempts to change status from `pending` directly to `ready`
 - **THEN** system SHALL reject the transition
 - **AND** return an error indicating the transition is invalid
+
+### Requirement: Per-line order options
+
+The system SHALL persist per-line buyer choices (e.g. hot/cold) on order items.
+
+#### Scenario: Customer orders a temperature-required product
+
+- **WHEN** customer submits an order containing a product with `support_temperature = 1`
+- **THEN** the order_items row SHALL include the chosen `options` value (e.g. "热" or "冷")
+- **AND** omitting the choice SHALL return HTTP 400 with a message naming the product
+
+#### Scenario: Customer orders a product without options
+
+- **WHEN** customer submits an order containing a product with `support_temperature = 0`
+- **THEN** the order_items row SHALL have `options = NULL` regardless of any client payload
+
+#### Scenario: Merchant views an order with options
+
+- **WHEN** merchant opens the order detail
+- **THEN** each order line SHALL display the chosen option label next to the product name (when set)

@@ -83,7 +83,9 @@ Page({
         imageUrl: api.resolveImageUrl(p.image_url),
         icon: this.iconForCategory(p.category),
         discounted_price: app.priceWithDiscount(p.price),
-        has_discount: app.priceWithDiscount(p.price) < p.price - 0.001
+        has_discount: app.priceWithDiscount(p.price) < p.price - 0.001,
+        // 把后端的 0/1 归一化成布尔,前端更直观
+        support_temperature: !!p.support_temperature
       }));
 
       // 默认选中第一个分类(若当前已选中且仍存在则保留)
@@ -148,9 +150,21 @@ Page({
     if (!product) return;
     // Ensure detailProduct has an icon fallback
     if (!product.icon) product.icon = this.iconForCategory(product.category);
+    // 详情弹窗里始终展示 options 字段 (未选时为空对象)
+    const detailProduct = { ...product, options: {} };
     this.setData({
-      detailProduct: product,
+      detailProduct,
       detailVisible: true
+    });
+  },
+
+  // 选择冷/热 (仅当商品开启 support_temperature 时)
+  onPickTemperature(e) {
+    const temp = e.currentTarget.dataset.temp;
+    const dp = this.data.detailProduct;
+    if (!dp || !dp.support_temperature) return;
+    this.setData({
+      'detailProduct.options': { temperature: temp }
     });
   },
 
@@ -164,10 +178,17 @@ Page({
     const product = this.data.detailProduct;
     if (!product) return;
 
+    // 必选温度但未选 → 拦截,提示用户
+    if (product.support_temperature && !(product.options && product.options.temperature)) {
+      wx.showToast({ title: '请先选择温度', icon: 'none' });
+      return;
+    }
+
     app.addToCart(product);
     wx.vibrateShort({ type: 'light' });
+    const tempLabel = (product.options && product.options.temperature) || '';
     wx.showToast({
-      title: `已加入 ${product.name}`,
+      title: tempLabel ? `已加入 ${tempLabel} ${product.name}` : `已加入 ${product.name}`,
       icon: 'success',
       duration: 1200
     });
@@ -176,11 +197,22 @@ Page({
     this.refreshCart();
   },
 
-  // 内联加购(保留原行为,某些用户可能习惯直接 +)
+  // 内联加购(列表页的 + 按钮)
+  // 对于支持冷/热的商品,直接打开详情弹窗让用户先选温度,避免误加。
   async addToCart(e) {
     const id = e.currentTarget.dataset.id;
     const product = this.data.products.find((p) => p.id === id);
     if (!product) return;
+
+    if (product.support_temperature) {
+      // 复用详情弹窗的同一路径,选好温度后再次点 + 加入购物车
+      if (!product.icon) product.icon = this.iconForCategory(product.category);
+      this.setData({
+        detailProduct: { ...product, options: {} },
+        detailVisible: true
+      });
+      return;
+    }
 
     app.addToCart(product);
     wx.vibrateShort({ type: 'light' });

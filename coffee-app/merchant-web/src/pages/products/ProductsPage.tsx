@@ -17,6 +17,7 @@ interface ProductFormData {
   description: string;
   image_url: string;
   available: boolean;
+  support_temperature: boolean;
 }
 
 const emptyForm = (defaultCategory: string): ProductFormData => ({
@@ -25,7 +26,8 @@ const emptyForm = (defaultCategory: string): ProductFormData => ({
   price: '',
   description: '',
   image_url: '',
-  available: true
+  available: true,
+  support_temperature: false
 });
 
 export default function ProductsPage() {
@@ -110,7 +112,8 @@ export default function ProductsPage() {
       price: String(p.price),
       description: p.description || '',
       image_url: p.image_url || '',
-      available: !!p.available
+      available: !!p.available,
+      support_temperature: !!p.support_temperature
     });
 
   return (
@@ -171,6 +174,7 @@ export default function ProductsPage() {
               <th>名称</th>
               <th>分类</th>
               <th style={{ width: 100 }}>价格</th>
+              <th style={{ width: 100 }}>冷热</th>
               <th style={{ width: 100 }}>状态</th>
               <th style={{ width: 200 }}>操作</th>
             </tr>
@@ -202,6 +206,13 @@ export default function ProductsPage() {
                   <span className="badge">{p.category}</span>
                 </td>
                 <td>{formatPrice(p.price)}</td>
+                <td>
+                  {p.support_temperature ? (
+                    <span className="status status-completed" title="顾客加购前需选冷/热">热/冷</span>
+                  ) : (
+                    <span style={{ color: 'var(--muted)' }}>—</span>
+                  )}
+                </td>
                 <td>
                   {p.available ? (
                     <span className="status status-completed">上架中</span>
@@ -327,7 +338,8 @@ function ProductFormModal({
         price,
         description: form.description.trim() || undefined,
         image_url: form.image_url.trim() || undefined,
-        available: form.available ? 1 : 0
+        available: form.available ? 1 : 0,
+        support_temperature: form.support_temperature ? 1 : 0
       };
       if (form.id) {
         await api.updateProduct(form.id, payload);
@@ -469,6 +481,21 @@ function ProductFormModal({
             />
             立即上架（顾客可见）
           </label>
+        </div>
+
+        <div className="form-group">
+          <label>
+            <input
+              type="checkbox"
+              checked={form.support_temperature}
+              onChange={(e) => setForm({ ...form, support_temperature: e.target.checked })}
+              style={{ width: 'auto', marginRight: 6 }}
+            />
+            支持冷/热选项（顾客加购前需选择）
+          </label>
+          <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 4 }}>
+            开启后，小程序在商品详情弹窗会让顾客选「热 ☕」或「冷 🧊」才能加入购物车。
+          </div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>

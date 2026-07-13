@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS products (
   image_url TEXT,
   available INTEGER NOT NULL DEFAULT 1,
   sort_order INTEGER NOT NULL DEFAULT 0,
+  -- When 1, the customer must pick a hot/cold temperature before adding to cart.
+  -- When 0, the product is added as-is with no extra option.
+  support_temperature INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
@@ -44,6 +47,9 @@ CREATE TABLE IF NOT EXISTS order_items (
   quantity INTEGER NOT NULL,
   unit_price REAL NOT NULL,
   subtotal REAL NOT NULL,
+  -- Per-line buyer choices, e.g. '热' or '冷' (the temperature label).
+  -- NULL means the product didn't support options or the customer didn't pick any.
+  options TEXT,
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
   FOREIGN KEY (product_id) REFERENCES products(id)
 );

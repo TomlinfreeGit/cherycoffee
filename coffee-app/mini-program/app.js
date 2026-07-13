@@ -117,9 +117,14 @@ App({
   },
 
   // 添加商品到购物车
+  // 同一商品在不同 options 下应该作为两条购物车条目 (例如 热拿铁 与 冰拿铁 各一)。
+  // product 必填字段: id, name, price, options?: { temperature?: '热' | '冷' | null }
   addToCart(product) {
+    const opts = (product.options && typeof product.options === 'object') ? product.options : {};
+    // 归一化:空对象当作 null,便于相等比较
+    const normalizedOptions = (opts.temperature) ? { temperature: opts.temperature } : null;
     const existing = this.globalData.cart.find(
-      (item) => item.product_id === product.id
+      (item) => item.product_id === product.id && this._sameOptions(item.options, normalizedOptions)
     );
     if (existing) {
       existing.quantity += 1;
@@ -129,10 +134,26 @@ App({
         product_name: product.name,
         price: product.price,
         image_url: product.image_url || null,
-        quantity: 1
+        quantity: 1,
+        options: normalizedOptions
       });
     }
     this.saveCart();
+  },
+
+  // 比较两个 options 对象是否等价 (都视为 null 等价于 {})
+  _sameOptions(a, b) {
+    const norm = (o) => {
+      if (!o) return null;
+      const t = o.temperature;
+      if (!t) return null;
+      return { temperature: t };
+    };
+    const na = norm(a);
+    const nb = norm(b);
+    if (na === null && nb === null) return true;
+    if (na === null || nb === null) return false;
+    return na.temperature === nb.temperature;
   },
 
   // 从购物车移除

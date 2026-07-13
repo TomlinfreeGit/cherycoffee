@@ -40,7 +40,10 @@
         />
         <text wx:else class="item-emoji">☕</text>
       </view>
-      <view class="item-name">{{item.product_name}}</view>
+      <view class="item-name">
+        {{item.product_name}}
+        <text wx:if="{{item.options}}" class="item-temp">{{item.options}}</text>
+      </view>
       <view class="item-meta">
         <text class="qty">x{{item.quantity}}</text>
         <text class="price item-price">{{item.subtotal}}</text>

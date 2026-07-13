@@ -25,7 +25,10 @@
           <text wx:else class="cart-item-emoji">☕</text>
         </view>
         <view class="cart-item-main">
-          <view class="cart-item-name">{{item.product_name}}</view>
+          <view class="cart-item-name">
+            {{item.product_name}}
+            <text wx:if="{{item.options.temperature}}" class="cart-item-temp">{{item.options.temperature}}</text>
+          </view>
           <view class="cart-item-price-row">
             <text class="cart-item-price price">{{item.unit_price_discounted || item.price}}</text>
             <text class="cart-item-price-original" wx:if="{{item.has_discount}}">¥{{item.price}}</text>

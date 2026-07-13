@@ -33,7 +33,9 @@ const MIGRATIONS = [
   { table: 'products', column: 'category', type: 'TEXT', allowNull: true },
   { table: 'users', column: 'level', type: 'INTEGER', default: '1' },
   { table: 'users', column: 'completed_orders', type: 'INTEGER', default: '0' },
-  { table: 'categories', column: 'name_en', type: 'TEXT' }
+  { table: 'categories', column: 'name_en', type: 'TEXT' },
+  { table: 'products', column: 'support_temperature', type: 'INTEGER', default: '0' },
+  { table: 'order_items', column: 'options', type: 'TEXT' }
 ];
 
 function runMigrations() {

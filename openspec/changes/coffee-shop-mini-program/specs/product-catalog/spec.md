@@ -39,6 +39,27 @@ The system SHALL display menu categories in the mini-program sidebar using both 
 - **WHEN** a category was created without an English name
 - **THEN** the sidebar entry SHALL only show the Chinese name (no empty English line)
 
+### Requirement: Product temperature option
+
+The system SHALL allow merchants to mark products that need a hot/cold choice at order time.
+
+#### Scenario: Merchant enables temperature option
+
+- **WHEN** merchant creates or edits a product
+- **THEN** merchant MAY toggle the `support_temperature` flag (default off)
+- **AND** the flag SHALL be persisted as an integer 0/1 on the product row
+
+#### Scenario: Customer adds a temperature-required product to cart
+
+- **WHEN** customer adds a product where `support_temperature = 1` to the cart
+- **THEN** the customer-facing UI SHALL require a hot/cold choice first
+- **AND** the same product with different temperatures SHALL be stored as separate cart lines
+
+#### Scenario: Customer adds a product without temperature option
+
+- **WHEN** customer adds a product where `support_temperature = 0` to the cart
+- **THEN** the product SHALL be added as-is with no extra option
+
 ### Requirement: Product availability control
 
 The system SHALL allow merchants to control which products are available for ordering.

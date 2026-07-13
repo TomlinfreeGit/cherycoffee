@@ -88,8 +88,11 @@ Page({
       const discounted = app.priceWithDiscount(item.price) * item.quantity;
       originalTotal += orig;
       discountedTotal += discounted;
+      // 归一化 options:旧购物车(没有 options 字段)渲染为空对象,UI 安全兜底
+      const options = (item.options && typeof item.options === 'object') ? item.options : {};
       return {
         ...item,
+        options,
         imageUrl: api.resolveImageUrl(item.image_url),
         unit_price_discounted: app.priceWithDiscount(item.price),
         subtotal_discounted: Math.round(discounted * 100) / 100,
@@ -204,7 +207,9 @@ Page({
     try {
       const items = this.data.cart.map((item) => ({
         product_id: item.product_id,
-        quantity: item.quantity
+        quantity: item.quantity,
+        // 把购物车里的 options 透传给后端;后端会校验它与商品是否匹配
+        options: (item.options && item.options.temperature) ? { temperature: item.options.temperature } : undefined
       }));
 
       const orderRes = await api.createOrder(items, {

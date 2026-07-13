@@ -47,7 +47,7 @@ router.get('/:id', (req, res) => {
 // POST /api/products - create a product
 router.post('/', (req, res) => {
   try {
-    const { name, category, price, description, image_url, available, sort_order } = req.body;
+    const { name, category, price, description, image_url, available, sort_order, support_temperature } = req.body;
 
     if (!name || price == null) {
       return res.status(400).json({ error: 'name and price are required' });
@@ -62,8 +62,8 @@ router.post('/', (req, res) => {
     }
 
     const result = db.prepare(`
-      INSERT INTO products (name, category, price, description, image_url, available, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO products (name, category, price, description, image_url, available, sort_order, support_temperature)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       name,
       category || null,
@@ -71,7 +71,8 @@ router.post('/', (req, res) => {
       description || null,
       image_url || null,
       available === false ? 0 : 1,
-      sortVal
+      sortVal,
+      support_temperature ? 1 : 0
     );
 
     const created = db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
@@ -90,14 +91,18 @@ router.patch('/:id', (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    const allowed = ['name', 'category', 'price', 'description', 'image_url', 'available', 'sort_order'];
+    const allowed = ['name', 'category', 'price', 'description', 'image_url', 'available', 'sort_order', 'support_temperature'];
     const updates = [];
     const params = [];
 
     for (const key of allowed) {
       if (key in req.body) {
+        let val = req.body[key];
+        if (key === 'available' || key === 'support_temperature') {
+          val = val ? 1 : 0;
+        }
         updates.push(`${key} = ?`);
-        params.push(key === 'available' ? (req.body[key] ? 1 : 0) : req.body[key]);
+        params.push(val);
       }
     }
 
