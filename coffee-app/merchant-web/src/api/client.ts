@@ -146,8 +146,8 @@ export interface OrderStats {
 export interface Category {
   id: number;
   name: string;
+  name_en: string | null;
   sort_order: number;
-  icon: string | null;
   product_count: number;
   created_at: string;
   updated_at: string;
@@ -221,10 +221,12 @@ export const api = {
 
   // Categories
   listCategories: () => request<{ data: Category[] }>('GET', '/categories'),
-  createCategory: (data: { name: string; sort_order?: number; icon?: string }) =>
+  createCategory: (data: { name: string; name_en?: string | null; sort_order?: number }) =>
     request<{ data: Category }>('POST', '/categories', data),
-  updateCategory: (id: number, data: { name?: string; sort_order?: number; icon?: string }) =>
-    request<{ data: Category }>('PATCH', `/categories/${id}`, data),
+  updateCategory: (
+    id: number,
+    data: { name?: string; name_en?: string | null; sort_order?: number }
+  ) => request<{ data: Category }>('PATCH', `/categories/${id}`, data),
   deleteCategory: (id: number) =>
     request<{ data: { id: number; name: string; deleted: boolean; detached_products: number } }>(
       'DELETE',

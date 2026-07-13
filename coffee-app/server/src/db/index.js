@@ -32,7 +32,8 @@ const MIGRATIONS = [
   // violating NOT NULL (products get their category set to NULL = detached).
   { table: 'products', column: 'category', type: 'TEXT', allowNull: true },
   { table: 'users', column: 'level', type: 'INTEGER', default: '1' },
-  { table: 'users', column: 'completed_orders', type: 'INTEGER', default: '0' }
+  { table: 'users', column: 'completed_orders', type: 'INTEGER', default: '0' },
+  { table: 'categories', column: 'name_en', type: 'TEXT' }
 ];
 
 function runMigrations() {
@@ -155,12 +156,12 @@ function seedCategories() {
   if (count.cnt > 0) return;
 
   const insertCategory = db.prepare(`
-    INSERT INTO categories (name, sort_order, icon) VALUES (?, ?, ?)
+    INSERT INTO categories (name, name_en, sort_order) VALUES (?, ?, ?)
   `);
   const seedCats = [
-    ['意式咖啡', 1, '☕'],
-    ['其他饮品', 2, '🥤'],
-    ['创意特调', 3, '🍹']
+    ['意式咖啡', 'Espresso', 1],
+    ['其他饮品', 'Beverages', 2],
+    ['创意特调', 'Specials', 3]
   ];
   try {
     db.exec('BEGIN');
@@ -173,8 +174,38 @@ function seedCategories() {
   }
 }
 
+// One-off backfill: for the three default seeded categories that were
+// created before the `name_en` column existed, set sensible English
+// names so the new bilingual sidebar shows both lines out of the box.
+function backfillCategoryNameEn() {
+  const defaults = {
+    '意式咖啡': 'Espresso',
+    '其他饮品': 'Beverages',
+    '创意特调': 'Specials'
+  };
+  const update = db.prepare(
+    'UPDATE categories SET name_en = ? WHERE name = ? AND name_en IS NULL'
+  );
+  let updated = 0;
+  try {
+    db.exec('BEGIN');
+    for (const [zh, en] of Object.entries(defaults)) {
+      const r = update.run(en, zh);
+      updated += r.changes;
+    }
+    db.exec('COMMIT');
+    if (updated > 0) {
+      console.log(`✓ Backfilled name_en for ${updated} default categories`);
+    }
+  } catch (e) {
+    db.exec('ROLLBACK');
+    console.warn('Category name_en backfill failed:', e.message);
+  }
+}
+
 seedInitialData();
 seedCategories();
+backfillCategoryNameEn();
 
 // Seed default settings on first run
 function seedSettings() {

@@ -60,37 +60,59 @@
   min-height: 0;
 }
 
+/*
+ * 侧边栏条目 —— 双语显示（中文上，英文下），不再渲染 emoji 图标。
+ * 与设计参考图保持一致:左 4rpx 强调色竖条作为激活态指示,无图标,
+ * 上下结构:中文 28rpx (主色) + 英文 22rpx (浅色)。
+ */
 .sidebar-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 28rpx 12rpx;
+  padding: 24rpx 12rpx;
   position: relative;
-  border-left: 6rpx solid transparent;
+  border-left: 4rpx solid transparent;
   transition: all 0.15s;
+  /* 允许长英文名换行,避免横向溢出 200rpx 容器 */
+  overflow: hidden;
 }
 
 .sidebar-item.active {
   background: var(--bg);
   border-left-color: var(--primary);
+}
+
+.sidebar-name-zh {
+  font-size: 28rpx;
+  color: var(--text);
+  line-height: 1.3;
+  text-align: center;
+  font-weight: 500;
+  /* 长名称支持换行 */
+  word-break: break-all;
+  max-width: 100%;
+}
+
+.sidebar-name-en {
+  font-size: 22rpx;
+  color: var(--muted);
+  line-height: 1.3;
+  margin-top: 4rpx;
+  text-align: center;
+  /* 英文允许在词内断行,避免 200rpx 容器溢出 */
+  word-break: break-all;
+  max-width: 100%;
+}
+
+.sidebar-item.active .sidebar-name-zh {
+  color: var(--primary);
   font-weight: 600;
 }
 
-.sidebar-item.active .sidebar-label {
+.sidebar-item.active .sidebar-name-en {
   color: var(--primary);
-}
-
-.sidebar-icon {
-  font-size: 44rpx;
-  margin-bottom: 6rpx;
-  line-height: 1;
-}
-
-.sidebar-label {
-  font-size: 26rpx;
-  color: var(--text);
-  text-align: center;
+  opacity: 0.75;
 }
 
 /* ─── 右侧商品列表 ─────────────────────────────────── */

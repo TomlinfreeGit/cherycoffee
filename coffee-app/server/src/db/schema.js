@@ -98,11 +98,13 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 -- 菜单分类表
--- 与 products.category 字段冗余存储：分类本身有自己的元数据（icon、排序），
+-- 与 products.category 字段冗余存储：分类本身有自己的元数据（英文名、排序），
 -- 但 product.category 仍是字符串（保证兼容性）。
+-- icon 列保留为 nullable 以兼容历史数据库，但前端/后端 API 已不再使用。
 CREATE TABLE IF NOT EXISTS categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
+  name_en TEXT,
   sort_order INTEGER NOT NULL DEFAULT 0,
   icon TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),

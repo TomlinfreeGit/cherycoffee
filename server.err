@@ -1,0 +1,7 @@
+
+⚠ [merchantAuth] DEV FALLBACK TOKEN ("merchant-local-token") IS ACCEPTED.
+  This MUST be disabled in production. To disable:
+    export NODE_ENV=production
+  Or:
+    export ALLOW_DEV_MERCHANT_TOKEN=false
+

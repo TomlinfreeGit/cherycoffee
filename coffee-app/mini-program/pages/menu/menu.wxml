@@ -22,8 +22,8 @@
       data-key="{{item.name}}"
       bindtap="switchCategory"
     >
-      <view class="sidebar-icon">{{item.icon || '·'}}</view>
-      <view class="sidebar-label">{{item.name}}</view>
+      <view class="sidebar-name-zh">{{item.name}}</view>
+      <view class="sidebar-name-en" wx:if="{{item.name_en}}">{{item.name_en}}</view>
     </view>
   </scroll-view>
 

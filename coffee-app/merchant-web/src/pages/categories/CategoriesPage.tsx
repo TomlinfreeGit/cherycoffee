@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import { api, Category } from '../../api/client';
 import { showToast } from '../../components/Toast';
 
+const NAME_MAX_LEN = 20;
+const NAME_EN_MAX_LEN = 40;
+
 export default function CategoriesPage() {
   const [cats, setCats] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +29,7 @@ export default function CategoriesPage() {
     load();
   }, []);
 
-  const handleCreate = async (data: { name: string; icon: string }) => {
+  const handleCreate = async (data: { name: string; name_en: string | null }) => {
     try {
       await api.createCategory(data);
       showToast('已创建分类', 'success');
@@ -37,7 +40,7 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleSave = async (id: number, data: { name: string; icon: string }) => {
+  const handleSave = async (id: number, data: { name: string; name_en: string | null }) => {
     try {
       await api.updateCategory(id, data);
       showToast('已保存', 'success');
@@ -86,8 +89,8 @@ export default function CategoriesPage() {
         <table>
           <thead>
             <tr>
-              <th style={{ width: 60 }}>图标</th>
               <th>分类名称</th>
+              <th>英文名</th>
               <th style={{ width: 100 }}>商品数</th>
               <th style={{ width: 100 }}>排序</th>
               <th style={{ width: 220 }}>操作</th>
@@ -96,8 +99,12 @@ export default function CategoriesPage() {
           <tbody>
             {cats.map((c) => (
               <tr key={c.id}>
-                <td style={{ fontSize: 24 }}>{c.icon || '—'}</td>
-                <td><strong>{c.name}</strong></td>
+                <td>
+                  <strong>{c.name}</strong>
+                </td>
+                <td style={{ color: c.name_en ? 'var(--muted)' : '#bbb' }}>
+                  {c.name_en || '—'}
+                </td>
                 <td>{c.product_count}</td>
                 <td>{c.sort_order}</td>
                 <td>
@@ -131,7 +138,7 @@ export default function CategoriesPage() {
       {editing && (
         <CategoryEditor
           title={`编辑「${editing.name}」`}
-          initial={{ name: editing.name, icon: editing.icon || '' }}
+          initial={{ name: editing.name, name_en: editing.name_en || '' }}
           onCancel={() => setEditing(null)}
           onSave={(data) => handleSave(editing.id, data)}
         />
@@ -142,14 +149,14 @@ export default function CategoriesPage() {
 
 interface CategoryEditorProps {
   title: string;
-  initial?: { name: string; icon: string };
+  initial?: { name: string; name_en: string };
   onCancel: () => void;
-  onSave: (data: { name: string; icon: string }) => void;
+  onSave: (data: { name: string; name_en: string | null }) => void;
 }
 
 function CategoryEditor({ title, initial, onCancel, onSave }: CategoryEditorProps) {
   const [name, setName] = useState(initial?.name || '');
-  const [icon, setIcon] = useState(initial?.icon || '');
+  const [nameEn, setNameEn] = useState(initial?.name_en || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,11 +165,16 @@ function CategoryEditor({ title, initial, onCancel, onSave }: CategoryEditorProp
       showToast('请输入分类名称', 'error');
       return;
     }
-    if (trimmed.length > 20) {
-      showToast('分类名称过长（最多 20 字符）', 'error');
+    if (trimmed.length > NAME_MAX_LEN) {
+      showToast(`中文名称过长（最多 ${NAME_MAX_LEN} 字符）`, 'error');
       return;
     }
-    onSave({ name: trimmed, icon: icon.trim() });
+    const trimmedEn = nameEn.trim();
+    if (trimmedEn.length > NAME_EN_MAX_LEN) {
+      showToast(`英文名称过长（最多 ${NAME_EN_MAX_LEN} 字符）`, 'error');
+      return;
+    }
+    onSave({ name: trimmed, name_en: trimmedEn || null });
   };
 
   return (
@@ -171,25 +183,28 @@ function CategoryEditor({ title, initial, onCancel, onSave }: CategoryEditorProp
         <h3 className="modal-title">{title}</h3>
         <div className="modal-body">
           <div className="form-group">
-            <label>分类名称</label>
+            <label>中文名称</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              maxLength={20}
+              maxLength={NAME_MAX_LEN}
               autoFocus
               placeholder="例如：意式咖啡"
             />
           </div>
           <div className="form-group">
-            <label>图标（emoji，可选）</label>
+            <label>英文名称（可选）</label>
             <input
               type="text"
-              value={icon}
-              onChange={(e) => setIcon(e.target.value)}
-              maxLength={4}
-              placeholder="☕ / 🥤 / 🍹"
+              value={nameEn}
+              onChange={(e) => setNameEn(e.target.value)}
+              maxLength={NAME_EN_MAX_LEN}
+              placeholder="例如：Espresso"
             />
+            <small style={{ color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+              小程序侧边栏会显示双语：中文在上，英文在下。
+            </small>
           </div>
         </div>
         <div className="modal-footer">

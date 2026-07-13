@@ -9,12 +9,14 @@ const { merchantAuth } = require('../middleware/merchantAuth');
 const router = express.Router();
 
 const NAME_MAX_LEN = 20;
+const NAME_EN_MAX_LEN = 40;
 
 // GET /api/categories - list all categories (ordered)
+// Public endpoint used by the mini-program menu sidebar.
 router.get('/', (_req, res) => {
   try {
     const rows = db.prepare(`
-      SELECT c.id, c.name, c.sort_order, c.icon,
+      SELECT c.id, c.name, c.name_en, c.sort_order,
              (SELECT COUNT(*) FROM products p WHERE p.category = c.name) AS product_count
       FROM categories c
       ORDER BY c.sort_order ASC, c.id ASC
@@ -30,16 +32,29 @@ router.get('/', (_req, res) => {
 router.use(merchantAuth);
 
 // POST /api/categories - create
-// body: { name, sort_order?, icon? }
+// body: { name, name_en?, sort_order? }
 router.post('/', (req, res) => {
   try {
-    const { name, sort_order, icon } = req.body || {};
+    const { name, name_en, sort_order } = req.body || {};
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return res.status(400).json({ error: '分类名称不能为空' });
     }
     const trimmed = name.trim();
     if (trimmed.length > NAME_MAX_LEN) {
       return res.status(400).json({ error: `分类名称过长（最多 ${NAME_MAX_LEN} 字符）` });
+    }
+
+    // English name is optional but, if provided, must respect the max length.
+    let trimmedEn = null;
+    if (name_en != null && name_en !== '') {
+      if (typeof name_en !== 'string') {
+        return res.status(400).json({ error: '英文名称格式错误' });
+      }
+      trimmedEn = name_en.trim();
+      if (trimmedEn.length > NAME_EN_MAX_LEN) {
+        return res.status(400).json({ error: `英文名称过长（最多 ${NAME_EN_MAX_LEN} 字符）` });
+      }
+      if (trimmedEn.length === 0) trimmedEn = null;
     }
 
     // Check uniqueness
@@ -55,10 +70,12 @@ router.post('/', (req, res) => {
     }
 
     const result = db.prepare(`
-      INSERT INTO categories (name, sort_order, icon) VALUES (?, ?, ?)
-    `).run(trimmed, Number(sortVal) || 0, icon || null);
+      INSERT INTO categories (name, name_en, sort_order) VALUES (?, ?, ?)
+    `).run(trimmed, trimmedEn, Number(sortVal) || 0);
 
-    const created = db.prepare('SELECT * FROM categories WHERE id = ?').get(result.lastInsertRowid);
+    const created = db.prepare(
+      'SELECT id, name, name_en, sort_order, created_at, updated_at FROM categories WHERE id = ?'
+    ).get(result.lastInsertRowid);
     res.status(201).json({ data: created });
   } catch (err) {
     console.error('POST /api/categories error:', err);
@@ -66,7 +83,9 @@ router.post('/', (req, res) => {
   }
 });
 
-// PATCH /api/categories/:id - update name / sort_order / icon
+// PATCH /api/categories/:id - update name / name_en / sort_order
+// Note: the `icon` field is intentionally ignored — categories no longer
+// carry an icon. The DB column is kept nullable for historical data.
 router.patch('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
@@ -78,7 +97,7 @@ router.patch('/:id', (req, res) => {
       return res.status(404).json({ error: 'Category not found' });
     }
 
-    const allowed = ['name', 'sort_order', 'icon'];
+    const allowed = ['name', 'name_en', 'sort_order'];
     const updates = [];
     const params = [];
 
@@ -98,6 +117,19 @@ router.patch('/:id', (req, res) => {
           if (dup) {
             return res.status(409).json({ error: '分类名称已存在' });
           }
+        } else if (key === 'name_en') {
+          // Allow clearing the English name by passing null/empty string.
+          if (val === null || val === '') {
+            val = null;
+          } else if (typeof val === 'string') {
+            val = val.trim();
+            if (val.length > NAME_EN_MAX_LEN) {
+              return res.status(400).json({ error: `英文名称过长` });
+            }
+            if (val.length === 0) val = null;
+          } else {
+            return res.status(400).json({ error: '英文名称格式错误' });
+          }
         }
         updates.push(`${key} = ?`);
         params.push(val);
@@ -111,7 +143,9 @@ router.patch('/:id', (req, res) => {
     params.push(id);
 
     db.prepare(`UPDATE categories SET ${updates.join(', ')} WHERE id = ?`).run(...params);
-    const updated = db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
+    const updated = db.prepare(
+      'SELECT id, name, name_en, sort_order, created_at, updated_at FROM categories WHERE id = ?'
+    ).get(id);
     res.json({ data: updated });
   } catch (err) {
     console.error('PATCH /api/categories/:id error:', err);

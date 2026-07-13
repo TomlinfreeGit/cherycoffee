@@ -1,0 +1,6 @@
+◇ injected env (6) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+✓ Server running on http://0.0.0.0:3000
+  Local:   http://localhost:3000/api/health
+  Network: http://0.0.0.0:3000/api/health
+  LAN:     http://192.168.1.29:3000, http://192.168.198.1:3000, http://192.168.200.1:3000, http://172.19.128.1:3000
+[2026-07-13T04:07:26.991Z] GET /api/categories

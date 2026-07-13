@@ -16,6 +16,29 @@ The system SHALL display all available products organized by category for custom
 - **THEN** system SHALL show product name, category, price, and full-size image
 - **AND** system SHALL show an "Add to Cart" button
 
+### Requirement: Bilingual menu categories
+
+The system SHALL display menu categories in the mini-program sidebar using both Chinese and English names, with no icon.
+
+#### Scenario: Merchant configures a bilingual category
+
+- **WHEN** merchant creates or edits a category
+- **THEN** merchant SHALL provide a required Chinese name (1–20 chars)
+- **AND** merchant MAY optionally provide an English name (1–40 chars)
+- **AND** the system SHALL NOT expose or store an `icon` field for categories
+
+#### Scenario: Customer views the category sidebar
+
+- **WHEN** the customer opens the menu page
+- **THEN** each sidebar entry SHALL show the Chinese name on top and (if set) the English name below in a muted style
+- **AND** no emoji or icon SHALL appear in the sidebar entry
+- **AND** the active category SHALL be highlighted with a left accent border
+
+#### Scenario: Category has no English name
+
+- **WHEN** a category was created without an English name
+- **THEN** the sidebar entry SHALL only show the Chinese name (no empty English line)
+
 ### Requirement: Product availability control
 
 The system SHALL allow merchants to control which products are available for ordering.

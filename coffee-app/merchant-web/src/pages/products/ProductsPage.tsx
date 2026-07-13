@@ -134,7 +134,7 @@ export default function ProductsPage() {
               className={`chip ${filter === cat.name ? 'active' : ''}`}
               onClick={() => setFilter(cat.name)}
             >
-              {cat.icon ? `${cat.icon} ` : ''}{cat.name} ({cnt})
+              {cat.name}{cat.name_en ? ` (${cat.name_en})` : ''} ({cnt})
             </button>
           );
         })}
@@ -373,7 +373,7 @@ function ProductFormModal({
             ) : (
               categories.map((c) => (
                 <option key={c.id} value={c.name}>
-                  {c.icon ? `${c.icon} ` : ''}{c.name}
+                  {c.name}{c.name_en ? ` (${c.name_en})` : ''}
                 </option>
               ))
             )}

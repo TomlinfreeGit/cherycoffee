@@ -53,13 +53,18 @@ async function run() {
   r = await req('POST', '/api/categories', { name: 'Test' });
   r.status === 401 ? ok('POST without token → 401') : bad('no token POST', 401);
 
-  // 3. Create new category
-  r = await req('POST', '/api/categories', { name: '测试分类', icon: '🧪' }, MERCHANT_TOKEN);
+  // 3. Create new category (with bilingual names; no icon)
+  r = await req('POST', '/api/categories', { name: '测试分类', name_en: 'Test Cat' }, MERCHANT_TOKEN);
   let catId;
-  if (r.status === 201 && r.body.data.id && r.body.data.name === '测试分类') {
+  if (r.status === 201 && r.body.data.id && r.body.data.name === '测试分类' && r.body.data.name_en === 'Test Cat') {
     catId = r.body.data.id;
-    ok(`Create category: id=${catId} 测试分类`);
+    ok(`Create category: id=${catId} 测试分类 / Test Cat`);
   } else { bad('create category', r); return; }
+
+  // 3b. Verify icon field is no longer returned by the API
+  if (!('icon' in (r.body.data || {}))) {
+    ok('Create response omits icon field');
+  } else bad('icon should not be in response', r.body.data);
 
   // 4. Duplicate name → 409
   r = await req('POST', '/api/categories', { name: '测试分类' }, MERCHANT_TOKEN);
@@ -75,11 +80,17 @@ async function run() {
     ? ok('PATCH rename')
     : bad('rename', r);
 
-  // 7. PATCH sort_order + icon
-  r = await req('PATCH', `/api/categories/${catId}`, { sort_order: 99, icon: '🍵' }, MERCHANT_TOKEN);
-  r.status === 200 && r.body.data.sort_order === 99 && r.body.data.icon === '🍵'
-    ? ok('PATCH sort_order + icon')
-    : bad('patch sort/icon', r);
+  // 7. PATCH sort_order + name_en
+  r = await req('PATCH', `/api/categories/${catId}`, { sort_order: 99, name_en: 'Renamed EN' }, MERCHANT_TOKEN);
+  r.status === 200 && r.body.data.sort_order === 99 && r.body.data.name_en === 'Renamed EN'
+    ? ok('PATCH sort_order + name_en')
+    : bad('patch sort/name_en', r);
+
+  // 7b. PATCH clearing name_en back to null
+  r = await req('PATCH', `/api/categories/${catId}`, { name_en: null }, MERCHANT_TOKEN);
+  r.status === 200 && r.body.data.name_en === null
+    ? ok('PATCH clear name_en')
+    : bad('clear name_en', r);
 
   // 8. PATCH 404
   r = await req('PATCH', '/api/categories/99999', { name: 'x' }, MERCHANT_TOKEN);
