@@ -69,7 +69,7 @@
           bindgetphonenumber="onGetPhoneNumber"
           bindtap="onPhoneBtnTap"
         >
-          📱 微信一键获取手机号
+        一键获取手机号
         </button>
 
         <!-- 折叠的手动输入（开发 / 模拟器 / 微信拒绝时使用） -->
@@ -99,7 +99,7 @@
 
     <view class="footer-hint">
       · 昵称保存到云端，登录后自动恢复<br/>
-      · 手机号由微信官方授权，仅用于取餐联系<br/>
+      · 手机号仅用于取餐联系<br/>
       · 取餐号会显示在「我的订单」页面
     </view>
   </block>
