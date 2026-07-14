@@ -243,11 +243,32 @@ router.get('/', customerAuth, (req, res) => {
 
 // POST /api/orders/pay/notify — 微信支付 V3 回调 (无 auth,微信后台直接调用)
 // 顺序重要:固定路径 `/pay/notify` 必须注册在 `/:id/xxx` 动态路由之前,避免被错位匹配。
-// 入口处需挂载 express.raw,见 src/index.js。
-router.post('/pay/notify', (req, res) => {
+// 入口处需挂载 express.raw,见 src/index.js;此处路由层再挂一道 raw 作兜底,
+// 即使 app 层 raw 中间件被漏挂或路径匹配错位也能拿到原始 body。
+const notifyRaw = express.raw({ type: '*/*', limit: '1mb' });
+router.post('/pay/notify', notifyRaw, (req, res) => {
   try {
-    const rawBody = req.body.toString('utf8');
-    const payload = JSON.parse(rawBody);
+    // 容错取 body:优先 Buffer(由 express.raw 提供),其次字符串,其次已被 JSON 解析的对象
+    let rawBody;
+    if (Buffer.isBuffer(req.body)) {
+      rawBody = req.body.toString('utf8');
+    } else if (typeof req.body === 'string') {
+      rawBody = req.body;
+    } else if (req.body && typeof req.body === 'object') {
+      // 已被前置 json parser 解析过 — 无法再做原始验签,但仍可尝试解密后比对
+      rawBody = JSON.stringify(req.body);
+    } else {
+      console.error('Pay notify: req.body is empty/undefined, content-type=', req.headers['content-type']);
+      return res.status(400).json({ code: 'FAIL', message: 'Empty request body' });
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch (e) {
+      console.error('Pay notify: invalid JSON body, length=', rawBody.length);
+      return res.status(400).json({ code: 'FAIL', message: 'Invalid JSON' });
+    }
 
     // 只处理支付成功事件;其他事件(退款等)直接 ACK,避免微信重试
     if (payload.event_type !== 'TRANSACTION.SUCCESS') {
@@ -257,11 +278,11 @@ router.post('/pay/notify', (req, res) => {
       throw new Error('Missing resource in notify payload');
     }
 
-    // 验签 + AEAD_AES_256_GCM 解密
+    // 验签 + AEAD_AES_256_GCM 解密 (兼容 V3 新老两种 header 方式)
     let decrypted;
     try {
       decrypted = wechatPay.verifyAndDecryptNotify(
-        req.headers.authorization,
+        req.headers,
         rawBody,
         payload.resource
       );
@@ -326,6 +347,30 @@ router.post('/:id/pay', customerAuth, async (req, res) => {
           ...params
         }
       });
+    }
+
+    // Real 模式:先调微信查单接口,防止回调丢失导致订单永远卡 pending
+    // (典型场景:回调地址不可达/验签失败/中间件漏挂,微信侧已支付成功,
+    //  但服务端仍是 pending — 此时再次拉起支付会触发 "该订单已支付")
+    try {
+      const existing = await wechatPay.queryOrderByOutTradeNo(order.pickup_number);
+      if (existing.tradeState === 'SUCCESS') {
+        db.prepare(`
+          UPDATE orders
+          SET status = 'paid', transaction_id = ?, updated_at = datetime('now', 'localtime')
+          WHERE id = ? AND status = 'pending'
+        `).run(existing.transactionId || null, order.id);
+        console.log(`✓ Recover via query: order #${order.id} (${order.pickup_number}) → paid, tx=${existing.transactionId}`);
+        const updated = db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
+        return res.status(409).json({
+          error: `Order already paid (recovered via WeChat query, tx=${existing.transactionId})`,
+          data: { ...updated, recovered: true }
+        });
+      }
+      // NOTPAY / USERPAYING / CLOSED 等:继续往下走创建新的预付单
+    } catch (queryErr) {
+      // 查单失败不阻塞 — 仅记录,继续走 createJsapiOrder
+      console.warn(`Pay: pre-check query failed (order=${order.pickup_number}):`, queryErr.message);
     }
 
     // Real 模式:服务端调用 V3 JSAPI 统一下单
