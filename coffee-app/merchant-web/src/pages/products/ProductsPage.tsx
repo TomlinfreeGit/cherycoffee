@@ -1,7 +1,9 @@
 // filepath: coffee-app/merchant-web/src/pages/products/ProductsPage.tsx
 import { useEffect, useRef, useState } from 'react';
 import { api, Product, Category } from '../../api/client';
+import { handleUnauthorized } from '../../api/client';
 import { API_BASE, resolveImageUrl } from '../../api/config';
+import { auth } from '../../api/auth';
 import { showToast } from '../../components/Toast';
 import { formatPrice } from '../../utils/format';
 
@@ -293,13 +295,24 @@ function ProductFormModal({
       fd.append('file', file);
 
       const apiBase = API_BASE;
-      const MERCHANT_TOKEN = 'merchant-local-token';
+      // 必传登录后服务端返回的真实 token。
+      // 注意:不能写死 'merchant-local-token' —— 后端在配置了真实账号 (或 NODE_ENV=production)
+      // 时会关闭 dev-fallback,硬编码 token 会直接 401。
+      const token = auth.getToken();
+      if (!token) {
+        throw new Error('未登录,请重新登录后重试');
+      }
       const res = await fetch(`${apiBase}/uploads`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${MERCHANT_TOKEN}` },
+        headers: { Authorization: `Bearer ${token}` },
         body: fd
       });
 
+      if (res.status === 401) {
+        // 上传时的 401 走与 client.ts 一致的清理路径:清本地 token + 通知 App.tsx 跳登录页
+        await handleUnauthorized();
+        throw new Error('登录已过期,请重新登录');
+      }
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: '上传失败' }));
         throw new Error(err.error || `上传失败 ${res.status}`);

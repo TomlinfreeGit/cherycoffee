@@ -22,6 +22,17 @@ function emitUnauthorized() {
 }
 
 /**
+ * 在不走 request() 的场景 (如原生 fetch 上传) 中手动触发 401 清理流程:
+ *   1) 调 auth.logout 清 localStorage 里的 token
+ *   2) 通知所有订阅者 (App.tsx 收到后会跳到 /login)
+ * 业务侧只需要调用本函数一次即可,不必分别 import auth + onUnauthorized。
+ */
+export async function handleUnauthorized() {
+  await auth.logout(false);
+  emitUnauthorized();
+}
+
+/**
  * 拿到当前有效的 Bearer token。
  * 仅从 localStorage 读,绝不在前端固化任何 token。
  */
@@ -43,8 +54,7 @@ async function request<T>(method: string, path: string, body?: unknown, opts: { 
   });
   if (res.status === 401 && !opts.noAuth) {
     // 清理本地 token,通知监听器(跳登录页)
-    await auth.logout(false);
-    emitUnauthorized();
+    await handleUnauthorized();
     const err = new Error('Unauthorized');
     (err as any).status = 401;
     throw err;
@@ -197,8 +207,7 @@ export const api = {
       headers: token ? { Authorization: `Bearer ${token}` } : {}
     });
     if (res.status === 401) {
-      await auth.logout(false);
-      emitUnauthorized();
+      await handleUnauthorized();
       throw new Error('Unauthorized');
     }
     if (!res.ok) throw new Error('Failed to reveal phone');
