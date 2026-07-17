@@ -155,7 +155,7 @@ export default function UsersPage() {
                 </td>
                 <td>
                   <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-                    {formatTime(u.created_at)}
+                    {formatDate(u.created_at)}
                   </span>
                 </td>
                 <td>
