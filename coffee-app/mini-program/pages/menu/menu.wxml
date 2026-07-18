@@ -1,10 +1,18 @@
 <!-- filepath: coffee-app/mini-program/pages/menu/menu.wxml -->
 <!--
   顶层 .page-menu 改为纵向 flex:
-    - .level-bar  顶部 banner (flex: 0 0 auto,仅 level>1 渲染)
-    - .menu-body  横向 flex,包含 sidebar + product-area
-  这样 banner 会真正占用 56rpx 的高度,下面的 scroll-view
-  自动缩短,不会被 banner 遮住顶部菜单内容。
+    - .level-bar    顶部 banner (flex: 0 0 auto, 仅 level>1 渲染)
+    - .menu-body    横向 flex, 包含 sidebar + product-area
+  这样 banner 占用 56rpx 的高度, 下面的 scroll-view 自动缩短, 不会被 banner 遮住顶部菜单内容。
+
+  轮播图 + 商品联动 (v2):
+    轮播放在「右侧」商品区域最顶部, 与商品共用同一个 scroll-view:
+      - 轮播 + 商品一起可上下滑动 (与商品列表无缝衔接)
+      - 左侧 sidebar 仍然固定
+    所有分类一次性渲染到一个长列表 (按分类分组, 每个分组前有 sticky 标题)。
+    点击 sidebar 分类 → scroll-into-view 跳到该分类标题。
+    滑到底 → 自动滚到下一个分类的标题 (用 bindscrolltolower 监听)。
+    滚动时 → 同步更新 sidebar 激活态 (用 bindscroll + 阈值判断当前所属分类)。
 -->
 <view class="page-menu">
   <view class="level-bar" wx:if="{{hasDiscount}}">
@@ -12,203 +20,244 @@
     <text class="level-text">Lv.{{userLevel}} 会员专享价</text>
   </view>
 
-  <!--
-    顶部大图轮播。商家在后台「轮播图」页面可添加 / 排序 / 上下架。
-    - 仅当 banners.length >= 1 时才渲染 (0 张时本节点直接不渲染,节省高度)
-    - 高度与产品详情弹窗里的 .detail-image-wrap 一致 (480rpx),保持视觉一致
-    - indicator-dots 微信原生指示器,autoplay 3s
-    - 点击图片触发 onBannerTap: link_type=category 时切换到对应分类;product 暂留扩展
-  -->
-  <swiper
-    wx:if="{{banners.length > 0}}"
-    class="banner-swiper"
-    indicator-dots="{{banners.length > 1}}"
-    indicator-color="rgba(255,255,255,0.5)"
-    indicator-active-color="#ffffff"
-    autoplay="{{banners.length > 1}}"
-    interval="3000"
-    duration="450"
-    circular="{{banners.length > 1}}"
-    bindtap="onBannerTap"
-    bindchange="onBannerChange"
-  >
-    <swiper-item
-      wx:for="{{banners}}"
-      wx:key="id"
-      data-id="{{item.id}}"
-      data-link-type="{{item.link_type}}"
-      data-link-value="{{item.link_value}}"
-      data-index="{{index}}"
-    >
-      <image
-        class="banner-image"
-        src="{{item.imageUrl}}"
-        mode="aspectFill"
-        binderror="onBannerImageError"
-        data-id="{{item.id}}"
-      />
-      <view wx:if="{{item.title}}" class="banner-title">{{item.title}}</view>
-    </swiper-item>
-  </swiper>
-
   <view class="menu-body">
-  <!-- 左侧分类栏 -->
-  <scroll-view class="category-sidebar" scroll-y enhanced show-scrollbar="{{false}}">
-    <view
-      wx:for="{{categories}}"
-      wx:key="id"
-      class="sidebar-item {{activeCategory === item.name ? 'active' : ''}}"
-      data-key="{{item.name}}"
-      bindtap="switchCategory"
+    <!--
+      左侧分类栏。
+      - scroll-y: 内容超出可视区时, 可独立纵向滚动 (用户也可手动拖动)
+      - scroll-into-view="{{scrollIntoSidebarId}}": 当右侧滚动 / 点击 sidebar 导致
+        activeCategory 变化时, 同步把左侧滚到让激活条目可见, 避免高亮的条目跑到视口外。
+      - 每个 sidebar-item 上加 id="sidebar-item-<id>" 作为 anchor 锚点。
+    -->
+    <scroll-view
+      class="category-sidebar"
+      scroll-y
+      enhanced
+      show-scrollbar="{{false}}"
+      scroll-into-view="{{scrollIntoSidebarId}}"
+      scroll-with-animation="{{true}}"
     >
-      <view class="sidebar-name-zh">{{item.name}}</view>
-      <view class="sidebar-name-en" wx:if="{{item.name_en}}">{{item.name_en}}</view>
-    </view>
-  </scroll-view>
-
-  <!-- 右侧商品列表 -->
-  <scroll-view class="product-area" scroll-y enhanced show-scrollbar="{{false}}">
-    <block wx:if="{{loading}}">
-      <view class="empty">
-        <text class="empty-icon">⏳</text>
-        <text>加载中...</text>
+      <view
+        wx:for="{{categories}}"
+        wx:key="id"
+        id="sidebar-item-{{item.id}}"
+        class="sidebar-item {{activeCategory === item.name ? 'active' : ''}}"
+        data-key="{{item.name}}"
+        bindtap="switchCategory"
+      >
+        <view class="sidebar-name-zh">{{item.name}}</view>
+        <view class="sidebar-name-en" wx:if="{{item.name_en}}">{{item.name_en}}</view>
       </view>
-    </block>
+    </scroll-view>
 
-    <block wx:elif="{{categories.length === 0}}">
-      <view class="empty">
-        <text class="empty-icon">☕</text>
-        <text>暂无分类</text>
-      </view>
-    </block>
-
-    <block wx:else>
-      <block wx:for="{{products}}" wx:key="id" wx:if="{{item.category === activeCategory}}">
-        <view class="product-card">
-          <!-- 可点击的图片:弹出大图详情 -->
-          <view
-            class="product-image"
-            hover-class="image-hover"
-            hover-stay-time="100"
+    <!--
+      右侧统一滚动区: 轮播 (若有) + 全部分类的商品。
+      - scroll-into-view="{{scrollIntoCategoryId}}"   点击 sidebar 时跳转
+      - bindscroll                  → 更新当前 activeCategory
+      - bindscrolltolower           → 滑到底, 自动滚到下一个分类标题
+      - enhanced + show-scrollbar   → 优化滚动性能
+      - upper-threshold / lower-threshold = 0  让边界事件更精准
+    -->
+    <scroll-view
+      class="product-area"
+      scroll-y
+      enhanced
+      show-scrollbar="{{false}}"
+      scroll-into-view="{{scrollIntoCategoryId}}"
+      bindscroll="onProductScroll"
+      bindscrolltolower="onProductScrollToLower"
+      upper-threshold="0"
+      lower-threshold="0"
+      scroll-with-animation="{{scrollWithAnimation}}"
+    >
+      <!--
+        顶部大图轮播 — 放在商品区域最顶部, 与商品共享同一 scroll-view。
+        - 仅 banners.length >= 1 时渲染
+        - 商家在后台「轮播图」页面可添加 / 排序 / 上下架
+        - 用一个专属 id='banner-anchor' 锚点
+      -->
+      <swiper
+        wx:if="{{banners.length > 0}}"
+        id="banner-anchor"
+        class="banner-swiper"
+        indicator-dots="{{banners.length > 1}}"
+        indicator-color="rgba(255,255,255,0.5)"
+        indicator-active-color="#ffffff"
+        autoplay="{{banners.length > 1}}"
+        interval="3000"
+        duration="450"
+        circular="{{banners.length > 1}}"
+        bindtap="onBannerTap"
+        bindchange="onBannerChange"
+      >
+        <swiper-item
+          wx:for="{{banners}}"
+          wx:key="id"
+          data-id="{{item.id}}"
+          data-link-type="{{item.link_type}}"
+          data-link-value="{{item.link_value}}"
+          data-index="{{index}}"
+        >
+          <image
+            class="banner-image"
+            src="{{item.imageUrl}}"
+            mode="aspectFill"
+            binderror="onBannerImageError"
             data-id="{{item.id}}"
-            bindtap="onProductImageTap"
+          />
+          <view wx:if="{{item.title}}" class="banner-title">{{item.title}}</view>
+        </swiper-item>
+      </swiper>
+
+      <!-- 加载态 -->
+      <block wx:if="{{loading}}">
+        <view class="empty">
+          <text class="empty-icon">⏳</text>
+          <text>加载中...</text>
+        </view>
+      </block>
+
+      <!-- 无分类 -->
+      <block wx:elif="{{categories.length === 0}}">
+        <view class="empty">
+          <text class="empty-icon">☕</text>
+          <text>暂无分类</text>
+        </view>
+      </block>
+
+      <!--
+        全部分类一次性渲染。每个分类用一个 anchor id (cat-header-<id>) 作为 scroll-into-view 目标。
+        每个分类的标题是 sticky 顶部 (CSS position: sticky), 滑动时该分类标题会停留在视口顶部。
+      -->
+      <block wx:else>
+        <block wx:for="{{groupedProducts}}" wx:key="category" wx:for-item="group">
+          <view
+            id="cat-header-{{group.id}}"
+            class="cat-header"
+            data-category="{{group.category}}"
+            bindtap="onCatHeaderTap"
           >
-            <image
-              wx:if="{{item.imageUrl}}"
-              src="{{item.imageUrl}}"
-              class="product-img"
-              mode="aspectFill"
-              binderror="onImageError"
-              data-id="{{item.id}}"
-            />
-            <text wx:else class="product-emoji">{{item.icon || '☕'}}</text>
-            <view class="image-tap-hint">点击查看</view>
+            <view class="cat-header-zh">{{group.category}}</view>
+            <view class="cat-header-en" wx:if="{{group.categoryEn}}">{{group.categoryEn}}</view>
           </view>
 
-          <view class="product-info">
-            <view class="product-name">{{item.name}}</view>
-            <view class="product-desc" wx:if="{{item.description}}">{{item.description}}</view>
-            <view class="product-bottom">
-              <view class="product-price-line">
-                <!--
-                  兑底: discounted_price 可能在某些加载路径下未填充
-                  (例如商品列表刚拉回来还未走 applyDiscountToProducts)。
-                  使用 wx:if 兑底到原始价 item.price,避免出现空白。
-                -->
-                <text class="product-price price">{{item.discounted_price || item.price}}</text>
-                <text class="product-price-original" wx:if="{{item.has_discount}}">¥{{item.price}}</text>
+          <view wx:if="{{group.items.length === 0}}" class="cat-empty">
+            <text class="empty-icon">📭</text>
+            <text>该分类暂无商品</text>
+          </view>
+
+          <view
+            wx:for="{{group.items}}"
+            wx:key="id"
+            wx:for-item="p"
+            class="product-card"
+          >
+            <view
+              class="product-image"
+              hover-class="image-hover"
+              hover-stay-time="100"
+              data-id="{{p.id}}"
+              bindtap="onProductImageTap"
+            >
+              <image
+                wx:if="{{p.imageUrl}}"
+                src="{{p.imageUrl}}"
+                class="product-img"
+                mode="aspectFill"
+                binderror="onImageError"
+                data-id="{{p.id}}"
+              />
+              <text wx:else class="product-emoji">{{p.icon || '☕'}}</text>
+              <view class="image-tap-hint">点击查看</view>
+            </view>
+
+            <view class="product-info">
+              <view class="product-name">{{p.name}}</view>
+              <view class="product-desc" wx:if="{{p.description}}">{{p.description}}</view>
+              <view class="product-bottom">
+                <text class="product-price price">{{p.discounted_price || p.price}}</text>
+                <text class="product-price-original" wx:if="{{p.has_discount}}">¥{{p.price}}</text>
+                <button
+                  class="btn btn-primary btn-sm"
+                  size="mini"
+                  data-id="{{p.id}}"
+                  catchtap="addToCart"
+                >
+                  + 加入
+                </button>
               </view>
-              <button
-                class="btn btn-primary btn-sm"
-                size="mini"
-                data-id="{{item.id}}"
-                catchtap="addToCart"
-              >
-                + 加入
-              </button>
             </view>
           </view>
-        </view>
-      </block>
-
-      <block wx:if="{{activeCategoryEmpty}}">
-        <view class="empty">
-          <text class="empty-icon">📭</text>
-          <text>该分类暂无商品</text>
-        </view>
-      </block>
-    </block>
-  </scroll-view>
-
-  <!-- 浮动购物车栏 -->
-  <view class="bottom-bar" wx:if="{{cartCount > 0}}" bindtap="goToCart">
-    <view class="cart-icon-wrap">
-      <text class="cart-icon">🛒</text>
-      <view class="cart-badge" wx:if="{{cartCount > 0}}">{{cartCount}}</view>
-    </view>
-    <view class="summary">已选 {{cartCount}} 件</view>
-    <view class="total price">{{cartTotal}}</view>
-    <view class="btn btn-primary btn-sm">去结算 →</view>
-  </view>
-
-  <!-- 商品详情弹窗(从底部弹出) -->
-  <view
-    wx:if="{{detailVisible}}"
-    class="detail-mask"
-    bindtap="closeDetail"
-    catchtouchmove="noop"
-  >
-    <view class="detail-sheet" catchtap="noop">
-      <view class="detail-image-wrap">
-        <image
-          wx:if="{{detailProduct.imageUrl}}"
-          src="{{detailProduct.imageUrl}}"
-          class="detail-image"
-          mode="aspectFill"
-        />
-        <view wx:else class="detail-emoji">{{detailProduct.icon || '☕'}}</view>
-        <view class="detail-close" catchtap="closeDetail">✕</view>
-      </view>
-
-      <view class="detail-body">
-        <view class="detail-name">{{detailProduct.name}}</view>
-        <!-- 注意：.price class 会在前面自动加 ¥ (CSS ::before),所以这里不能再写 ¥ -->
-        <view class="detail-price-wrap">
-          <text class="detail-price price">{{detailProduct.discounted_price || detailProduct.price}}</text>
-          <text class="detail-price-original" wx:if="{{detailProduct.has_discount}}">原价 ¥{{detailProduct.price}}</text>
-        </view>
-        <!--
-          冷/热选项 —— 仅当商品开启 support_temperature 时渲染。
-          选中态: .temp-chip.active (绿色实心 + 白字);默认未选,加入按钮会拦截。
-        -->
-        <block wx:if="{{detailProduct.support_temperature}}">
-          <view class="detail-section-title">温度(必选)</view>
-          <view class="temp-chip-row">
-            <view
-              class="temp-chip {{detailProduct.options.temperature === '热' ? 'active' : ''}}"
-              data-temp="热"
-              catchtap="onPickTemperature"
-            >热 ☕</view>
-            <view
-              class="temp-chip {{detailProduct.options.temperature === '冷' ? 'active' : ''}}"
-              data-temp="冷"
-              catchtap="onPickTemperature"
-            >冷 🧊</view>
-          </view>
         </block>
-        <view class="detail-section-title">商品介绍</view>
-        <view class="detail-desc">
-          {{detailProduct.description || '暂无介绍'}}
+
+        <!-- 列表底部留白, 避免最后一个卡片贴到浮动购物车栏 -->
+        <view class="bottom-spacer"></view>
+      </block>
+    </scroll-view>
+
+    <!-- 浮动购物车栏 -->
+    <view class="bottom-bar" wx:if="{{cartCount > 0}}" bindtap="goToCart">
+      <view class="cart-icon-wrap">
+        <text class="cart-icon">🛒</text>
+        <view class="cart-badge" wx:if="{{cartCount > 0}}">{{cartCount}}</view>
+      </view>
+      <view class="summary">已选 {{cartCount}} 件</view>
+      <view class="total price">{{cartTotal}}</view>
+      <view class="btn btn-primary btn-sm">去结算 →</view>
+    </view>
+
+    <!-- 商品详情弹窗(从底部弹出) -->
+    <view
+      wx:if="{{detailVisible}}"
+      class="detail-mask"
+      bindtap="closeDetail"
+      catchtouchmove="noop"
+    >
+      <view class="detail-sheet" catchtap="noop">
+        <view class="detail-image-wrap">
+          <image
+            wx:if="{{detailProduct.imageUrl}}"
+            src="{{detailProduct.imageUrl}}"
+            class="detail-image"
+            mode="aspectFill"
+          />
+          <view wx:else class="detail-emoji">{{detailProduct.icon || '☕'}}</view>
+          <view class="detail-close" catchtap="closeDetail">✕</view>
+        </view>
+
+        <view class="detail-body">
+          <view class="detail-name">{{detailProduct.name}}</view>
+          <view class="detail-price-wrap">
+            <text class="detail-price price">{{detailProduct.discounted_price || detailProduct.price}}</text>
+            <text class="detail-price-original" wx:if="{{detailProduct.has_discount}}">原价 ¥{{detailProduct.price}}</text>
+          </view>
+          <block wx:if="{{detailProduct.support_temperature}}">
+            <view class="detail-section-title">温度(必选)</view>
+            <view class="temp-chip-row">
+              <view
+                class="temp-chip {{detailProduct.options.temperature === '热' ? 'active' : ''}}"
+                data-temp="热"
+                catchtap="onPickTemperature"
+              >热 ☕</view>
+              <view
+                class="temp-chip {{detailProduct.options.temperature === '冷' ? 'active' : ''}}"
+                data-temp="冷"
+                catchtap="onPickTemperature"
+              >冷 🧊</view>
+            </view>
+          </block>
+          <view class="detail-section-title">商品介绍</view>
+          <view class="detail-desc">
+            {{detailProduct.description || '暂无介绍'}}
+          </view>
+        </view>
+
+        <view class="detail-footer">
+          <button
+            class="btn btn-primary detail-add-btn"
+            catchtap="addToCartFromDetail"
+          >{{ detailProduct.support_temperature && !detailProduct.options.temperature ? '请先选择温度' : '+ 加入购物车' }}</button>
         </view>
       </view>
-
-      <view class="detail-footer">
-        <button
-          class="btn btn-primary detail-add-btn"
-          catchtap="addToCartFromDetail"
-        >{{ detailProduct.support_temperature && !detailProduct.options.temperature ? '请先选择温度' : '+ 加入购物车' }}</button>
-      </view>
     </view>
-  </view>
   </view><!-- /.menu-body -->
 </view><!-- /.page-menu -->

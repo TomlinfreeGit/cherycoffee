@@ -39,17 +39,22 @@
 
 /* ─── 顶部大图轮播 ──────────────────────────────── */
 /*
- * 与 .level-bar / .menu-body 一起作为 .page-menu 的 flex 子项。
- * 高度 360rpx,仅当 banners.length > 0 时由 wxml 的 wx:if 渲染 (零张时不占空间)。
- * swiper-item 必须 100% 高;image 用 mode="aspectFill" 让横图铺满、上下可能被裁。
- * 标题底部叠加,半透明深色底保证可读性。
+ * v2: 轮播图移到右侧商品区域最顶部, 与商品共享同一个 scroll-view。
+ * - 不再是 .page-menu 的 flex 子项,而是 .product-area 内层第一个元素。
+ * - 高度 360rpx,banners.length === 0 时不渲染 (不占高度)。
+ * - swiper-item 100% 高;image 用 mode="aspectFill" 让横图铺满、上下可能被裁。
+ * - 标题底部叠加,半透明深色底保证可读性。
  */
 .banner-swiper {
-  flex: 0 0 360rpx;
   width: 100%;
   height: 360rpx;
   background: var(--bg);
   position: relative;
+  /* 圆角与商品卡片呼应 */
+  border-radius: 12rpx;
+  overflow: hidden;
+  /* 与底部商品卡之间留一点间隔 */
+  margin-bottom: 16rpx;
 }
 
 .banner-image {
@@ -86,8 +91,8 @@
 /* ─── 左侧分类栏 ─────────────────────────────────── */
 .category-sidebar {
   /* Fixed width sidebar — scroll-view 内部高度由父元素撑开 */
-  width: 200rpx;
-  flex: 0 0 200rpx;
+  width: 150rpx;
+  flex: 0 0 150rpx;
   background: var(--panel);
   border-right: 1rpx solid var(--border);
   /* 关键:scroll-view 需要确定高度才能滚动。
@@ -107,7 +112,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24rpx 12rpx;
+  padding: 20rpx 0rpx;
   position: relative;
   border-left: 4rpx solid transparent;
   transition: all 0.15s;
@@ -121,21 +126,21 @@
 }
 
 .sidebar-name-zh {
-  font-size: 28rpx;
+  font-size: 24rpx;
   color: var(--text);
   line-height: 1.3;
   text-align: center;
-  font-weight: 500;
+  font-weight: 400;
   /* 长名称支持换行 */
   word-break: break-all;
   max-width: 100%;
 }
 
 .sidebar-name-en {
-  font-size: 22rpx;
+  font-size: 20rpx;
   color: var(--muted);
   line-height: 1.3;
-  margin-top: 4rpx;
+  margin-top: 2rpx;
   text-align: center;
   /* 英文允许在词内断行,避免 200rpx 容器溢出 */
   word-break: break-all;
@@ -144,7 +149,7 @@
 
 .sidebar-item.active .sidebar-name-zh {
   color: var(--primary);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .sidebar-item.active .sidebar-name-en {
@@ -157,10 +162,72 @@
   /* 占据除左侧 200rpx 外的全部空间 */
   flex: 1;
   width: calc(100% - 200rpx);
+  /* v2: 这里改成 height: 100% (scroll-view 需要确定高度才能滚动) */
   height: 100%;
   min-height: 0;
   padding: 16rpx 16rpx 24rpx;
   box-sizing: border-box;
+}
+
+/* ─── 分类标题 (右侧长列表中每个分类前的标题) ────────
+ * v4: 中文 + 英文放在同一行 (row), 竖排感觉太占纵向空间。
+ * - 中文稍大稍重作主标题, 英文作为柔色后缀
+ * - 行间 gap 8rpx, 超长时英文可截断省略号
+ */
+.cat-header {
+  background: var(--bg);
+  /*
+   * 上 padding (28rpx) 大于下 padding (10rpx):
+   *   - 上面间隔 = 与上一个分类的最后一张商品卡之间的距离, 需要留大一点表示“这是新分类的开始”
+   *   - 下面间隔 = 与本分类第一张商品卡之间的距离, 小一点能让标题与商品看起来更紧凑
+   * 同时移除 margin-bottom, 防止双重间隔叠加。
+   */
+  padding: 28rpx 8rpx 10rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  gap: 12rpx;
+  border-bottom: 1rpx solid var(--border);
+}
+
+.cat-header-zh {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+.cat-header-en {
+  font-size: 20rpx;
+  color: var(--muted);
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── 单分类内「无商品」占位 ──────── */
+.cat-empty {
+  padding: 60rpx 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 24rpx;
+}
+.cat-empty .empty-icon {
+  display: block;
+  font-size: 60rpx;
+  margin-bottom: 8rpx;
+  opacity: 0.6;
+}
+
+/* ─── 列表底部留白, 避免最后一张卡片贴到浮动购物车栏 ──────── */
+.bottom-spacer {
+  height: 140rpx;
+  width: 100%;
 }
 
 .product-card {
