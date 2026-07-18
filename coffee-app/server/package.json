@@ -12,7 +12,8 @@
     "test:wechat": "node test-wechat.js",
     "test:upload": "node test-upload.js",
     "test:customer": "node test-customer.js",
-    "test": "node test-api.js && node test-e2e.js && node test-auth.js && node test-wechat.js && node test-upload.js && node test-customer.js"
+    "test:auto-cancel": "node test-auto-cancel-pure.js && node test-auto-cancel.js",
+    "test": "node test-api.js && node test-e2e.js && node test-auth.js && node test-wechat.js && node test-upload.js && node test-customer.js && node test-auto-cancel-pure.js && node test-auto-cancel.js"
   },
   "keywords": [],
   "author": "",

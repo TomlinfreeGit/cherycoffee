@@ -21,6 +21,9 @@ const bannersMerchantRouter = bannersRouter.merchantRouter;
 // 副作用: 服务启动 → 自动建表 → 自动 hash 检查 seed → 显示 WARN。
 require('./middleware/merchantAuth');
 
+// auto-cancel-unpaid-orders: 加载服务模块
+const autoCancel = require('./services/autoCancel');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';  // Listen on all interfaces for LAN access
@@ -105,7 +108,13 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// auto-cancel-unpaid-orders: 关停信号 → clearInterval,防止退出途中执行到一半
+process.on('SIGTERM', () => autoCancel.stop());
+process.on('SIGINT', () => autoCancel.stop());
+
 app.listen(PORT, HOST, () => {
+  // auto-cancel-unpaid-orders: 启动后台定时任务,关闭旧定时器并登记新的
+  autoCancel.start();
   console.log(`✓ Server running on http://${HOST}:${PORT}`);
   console.log(`  Local:   http://localhost:${PORT}/api/health`);
   console.log(`  Network: http://0.0.0.0:${PORT}/api/health`);

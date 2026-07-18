@@ -217,6 +217,12 @@ router.patch('/orders/:id/status', (req, res) => {
       params.push(transaction_id);
     }
 
+    // auto-cancel-unpaid-orders: 商家主动取消订单,记录原因与时间戳
+    if (status === 'cancelled') {
+      updates.push(`cancel_reason = 'merchant'`);
+      updates.push(`cancelled_at = datetime('now', 'localtime')`);
+    }
+
     params.push(req.params.id);
     db.prepare(`UPDATE orders SET ${updates.join(', ')} WHERE id = ?`).run(...params);
 

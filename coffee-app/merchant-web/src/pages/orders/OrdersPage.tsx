@@ -252,6 +252,23 @@ export default function OrdersPage() {
                   </td>
                   <td>
                     <StatusBadge status={o.status} />
+                    {/* auto-cancel-unpaid-orders: 自动取消的订单加小标签,便于商家一眼识别 */}
+                    {o.status === 'cancelled' && o.cancel_reason === 'auto_timeout' && (
+                      <span
+                        title={`自动取消时间：${o.cancelled_at || ''}`}
+                        style={{
+                          display: 'inline-block',
+                          marginLeft: 8,
+                          padding: '1px 6px',
+                          fontSize: 11,
+                          borderRadius: 4,
+                          background: '#e5e7eb',
+                          color: '#4b5563'
+                        }}
+                      >
+                        自动取消
+                      </span>
+                    )}
                   </td>
                   <td>
                     <strong>{o.customer_name || '—'}</strong>

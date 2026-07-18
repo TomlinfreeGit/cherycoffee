@@ -1,5 +1,17 @@
 <!-- filepath: coffee-app/mini-program/pages/order-detail/order-detail.wxml -->
 <view class="page-detail" wx:if="{{order}}">
+  <!-- auto-cancel-unpaid-orders: 超时未支付被自动取消时顶部提示 -->
+  <view
+    class="auto-cancel-banner"
+    wx:if="{{order.status === 'cancelled' && order.cancel_reason === 'auto_timeout'}}"
+  >
+    <text class="auto-cancel-icon">⏱</text>
+    <view class="auto-cancel-text">
+      <view class="auto-cancel-title">因超时未支付，已自动取消</view>
+      <view class="auto-cancel-time" wx:if="{{cancelledAtText}}">取消时间：{{cancelledAtText}}</view>
+    </view>
+  </view>
+
   <view class="pickup-section">
     <view class="pickup-label">取餐号</view>
     <view class="pickup-number">{{order.pickup_number}}</view>

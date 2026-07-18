@@ -14,7 +14,10 @@ const DEFAULTS: LevelSettings = {
   level_orders_required: 10,
   level_discount_increment: 0.01,
   min_discount: 0.8,
-  order_auto_refresh_ms: 10000
+  order_auto_refresh_ms: 10000,
+  // auto-cancel-unpaid-orders
+  order_auto_cancel_seconds: 3600,
+  auto_cancel_scan_interval_seconds: 60
 };
 
 export default function SettingsPage() {
@@ -49,6 +52,8 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       const refreshMs = Number(settings.order_auto_refresh_ms);
+      const cancelSec = Number(settings.order_auto_cancel_seconds);
+      const scanSec = Number(settings.auto_cancel_scan_interval_seconds);
       const body: Partial<LevelSettings> = {
         level_orders_required: Number(settings.level_orders_required),
         level_discount_increment: Number(settings.level_discount_increment),
@@ -57,6 +62,24 @@ export default function SettingsPage() {
       // 仅当数字合法且与默认不一样时才提交 (避免空值触发后端 400)
       if (Number.isFinite(refreshMs) && refreshMs >= 5000 && refreshMs <= 600000) {
         body.order_auto_refresh_ms = refreshMs;
+      }
+      // auto-cancel-unpaid-orders: 后端要求整数,范围 [30, 86400] 秒
+      if (
+        Number.isFinite(cancelSec) &&
+        Number.isInteger(cancelSec) &&
+        cancelSec >= 30 &&
+        cancelSec <= 86400
+      ) {
+        body.order_auto_cancel_seconds = cancelSec;
+      }
+      // auto-cancel-unpaid-orders: 后端要求整数,范围 [10, 3600] 秒
+      if (
+        Number.isFinite(scanSec) &&
+        Number.isInteger(scanSec) &&
+        scanSec >= 10 &&
+        scanSec <= 3600
+      ) {
+        body.auto_cancel_scan_interval_seconds = scanSec;
       }
       const res = await api.updateSettings(body);
       setSettings(res.data);
@@ -159,6 +182,44 @@ export default function SettingsPage() {
             <div className="field-hint">
               单位:秒。范围 5–600 (10 分钟)。商家后台订单列表会按这个间隔自动拉新数据。
               默认 10 秒。保存后立即生效,无需重启。
+            </div>
+          </label>
+
+          {/* auto-cancel-unpaid-orders: 未支付订单自动取消阈值 + 扫描间隔 */}
+          <label className="field">
+            <div className="field-label">未支付订单自动取消</div>
+            <input
+              type="number"
+              min={30}
+              max={86400}
+              step={60}
+              value={Number(settings.order_auto_cancel_seconds ?? DEFAULTS.order_auto_cancel_seconds)}
+              onChange={(e) =>
+                setSettings({ ...settings, order_auto_cancel_seconds: Number(e.target.value) })
+              }
+            />
+            <div className="field-hint">
+              单位:秒。超过这个时间仍未支付的订单会被系统自动取消。
+              范围 30–86400 (1 分钟 ~ 24 小时)。默认 3600 (1 小时)。
+              保存后下一次扫描即生效。
+            </div>
+          </label>
+
+          <label className="field">
+            <div className="field-label">自动取消扫描间隔</div>
+            <input
+              type="number"
+              min={10}
+              max={3600}
+              step={10}
+              value={Number(settings.auto_cancel_scan_interval_seconds ?? DEFAULTS.auto_cancel_scan_interval_seconds)}
+              onChange={(e) =>
+                setSettings({ ...settings, auto_cancel_scan_interval_seconds: Number(e.target.value) })
+              }
+            />
+            <div className="field-hint">
+              单位:秒。范围 10–3600 (10 秒 ~ 1 小时)。默认 60 秒。
+              调整后下一次扫描即生效,无需重启服务。
             </div>
           </label>
 

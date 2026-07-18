@@ -105,6 +105,10 @@ export interface Order {
   transaction_id: string | null;
   created_at: string;
   updated_at: string;
+  // auto-cancel-unpaid-orders: 取消原因 ('merchant' | 'customer' | 'auto_timeout' | null)
+  cancel_reason?: 'merchant' | 'customer' | 'auto_timeout' | null;
+  // auto-cancel-unpaid-orders: 取消时间戳 (localtime 'YYYY-MM-DD HH:MM:SS')
+  cancelled_at?: string | null;
   items?: OrderItem[];
 }
 
@@ -132,6 +136,10 @@ export interface LevelSettings {
   min_discount: number;
   // 商家后台订单列表自动刷新间隔 (毫秒)。默认 10000 = 10 秒。
   order_auto_refresh_ms?: number;
+  // auto-cancel-unpaid-orders: 未支付订单自动取消阈值 (秒)。默认 3600 = 1 小时。
+  order_auto_cancel_seconds?: number;
+  // auto-cancel-unpaid-orders: 自动取消定时器扫描间隔 (秒)。默认 60,范围 [10, 3600]。
+  auto_cancel_scan_interval_seconds?: number;
 }
 
 export interface UserListResult {

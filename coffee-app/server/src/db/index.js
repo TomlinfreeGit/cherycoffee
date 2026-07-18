@@ -35,7 +35,10 @@ const MIGRATIONS = [
   { table: 'users', column: 'completed_orders', type: 'INTEGER', default: '0' },
   { table: 'categories', column: 'name_en', type: 'TEXT' },
   { table: 'products', column: 'support_temperature', type: 'INTEGER', default: '0' },
-  { table: 'order_items', column: 'options', type: 'TEXT' }
+  { table: 'order_items', column: 'options', type: 'TEXT' },
+  // auto-cancel-unpaid-orders: 取消元数据 (默认 NULL,取消时由 PATCH 或 autoCancel 任务写入)
+  { table: 'orders', column: 'cancel_reason', type: 'TEXT' },
+  { table: 'orders', column: 'cancelled_at', type: 'TEXT' }
 ];
 
 function runMigrations() {
@@ -58,6 +61,30 @@ function runMigrations() {
   // by the migrations above. We do this AFTER the column additions so
   // existing DBs without `level` won't fail at CREATE INDEX time.
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_level ON users(level)');
+
+  // auto-cancel-unpaid-orders: 复合索引 (status, created_at) 加速按状态过滤后按时间扫描
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders(status, created_at)'
+  );
+
+  // auto-cancel-unpaid-orders: 一次性清理历史 pending 行,避免新任务首跑批量误杀
+  // 仅删除 7 天前的 pending;最近 7 天内的挂单保留,商家能看到
+  try {
+    const delRes = db
+      .prepare(
+        `DELETE FROM orders
+          WHERE status = 'pending'
+            AND created_at < datetime('now', '-7 days', 'localtime')`
+      )
+      .run();
+    if (delRes.changes > 0) {
+      console.warn(
+        `auto-cancel cleanup: deleted ${delRes.changes} historical pending orders`
+      );
+    }
+  } catch (e) {
+    console.warn('auto-cancel cleanup failed:', e.message);
+  }
 
   // SQL-level migrations: relax constraints (SQLite doesn't support ALTER COLUMN).
   // We use a "shadow table" approach: create new table → copy → rename.

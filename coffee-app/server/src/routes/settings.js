@@ -25,7 +25,11 @@ const EDITABLE_KEYS = new Set([
   'level_discount_increment',
   'min_discount',
   // 商家后台订单列表自动刷新间隔 (毫秒)
-  'order_auto_refresh_ms'
+  'order_auto_refresh_ms',
+  // auto-cancel-unpaid-orders: 未支付订单自动取消阈值 (秒)
+  'order_auto_cancel_seconds',
+  // auto-cancel-unpaid-orders: 自动取消定时器扫描间隔 (秒)
+  'auto_cancel_scan_interval_seconds'
 ]);
 
 // Numeric ranges (bounds to prevent silly values)
@@ -34,7 +38,12 @@ const RANGES = {
   level_discount_increment: { min: 0.001, max: 0.5 },
   min_discount: { min: 0.1, max: 1.0 },
   // 5 秒 ~ 10 分钟 (防止瞬秒高频或后端僵死的极端值)
-  order_auto_refresh_ms: { min: 5000, max: 600000, integer: true }
+  order_auto_refresh_ms: { min: 5000, max: 600000, integer: true },
+  // auto-cancel-unpaid-orders:
+  //   阈值下限 30s (避免误伤),上限 24h (避免订单永远挂着)
+  //   间隔固定 [10, 3600] 与服务层 getAutoCancelScanIntervalSeconds 一致
+  order_auto_cancel_seconds: { min: 30, max: 86400, integer: true },
+  auto_cancel_scan_interval_seconds: { min: 10, max: 3600, integer: true }
 };
 
 // ─── Public router (mounted at /api) ────────────────────────
@@ -46,6 +55,9 @@ const publicRouter = express.Router();
 publicRouter.get('/settings', (_req, res) => {
   res.json({ data: getLevelSettings() });
 });
+
+// GET /api/merchant/settings - full settings (merchant only).
+// 已存在,不再重复定义。
 
 // ─── Merchant router (mounted at /api/merchant/settings) ──
 const merchantRouter = express.Router();

@@ -120,6 +120,27 @@
   overflow: hidden;
 }
 
+/*
+ * 菜单项之间的分隔线:
+ * - 用 ::after 伪元素画一条 60% 宽度、居中的细线
+ * - 不用 border-bottom 是为了不撑满整宽,且不影响布局
+ * - 最后一项不加,保持视觉简洁
+ */
+.sidebar-item::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 1rpx;
+  background: var(--border);
+}
+
+.sidebar-item:last-child::after {
+  display: none;
+}
+
 .sidebar-item.active {
   background: var(--bg);
   border-left-color: var(--primary);

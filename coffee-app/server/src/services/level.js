@@ -23,7 +23,12 @@ const DEFAULTS = Object.freeze({
   min_discount: 0.80,
   // 商家后台订单列表自动刷新间隔 (毫秒)。范围 5s~10min。
   // 商家可在"系统设置"里调整这个值,不需要重启服务。
-  order_auto_refresh_ms: 10000
+  order_auto_refresh_ms: 10000,
+  // auto-cancel-unpaid-orders: 未支付订单自动取消阈值 (秒)
+  order_auto_cancel_seconds: 3600,
+  // auto-cancel-unpaid-orders: 自动取消定时器扫描间隔 (秒)
+  // 范围限制在 [10, 3600],超出在读取时夹紧并 WARN
+  auto_cancel_scan_interval_seconds: 60
 });
 
 /**
@@ -46,8 +51,40 @@ function getLevelSettings() {
     level_orders_required: getSetting('level_orders_required'),
     level_discount_increment: getSetting('level_discount_increment'),
     min_discount: getSetting('min_discount'),
-    order_auto_refresh_ms: getSetting('order_auto_refresh_ms')
+    order_auto_refresh_ms: getSetting('order_auto_refresh_ms'),
+    order_auto_cancel_seconds: getAutoCancelSeconds(),
+    auto_cancel_scan_interval_seconds: getAutoCancelScanIntervalSeconds()
   };
+}
+
+/**
+ * 读取未支付订单自动取消阈值 (秒)。默认 3600 = 1 小时。
+ */
+function getAutoCancelSeconds() {
+  const v = getSetting('order_auto_cancel_seconds');
+  return Number.isFinite(v) && v > 0 ? v : DEFAULTS.order_auto_cancel_seconds;
+}
+
+/**
+ * 读取自动取消定时器扫描间隔 (秒)。
+ * 强制夹紧到 [10, 3600],超出范围 WARN 一次后返回夹紧值。
+ */
+const SCAN_INTERVAL_MIN = 10;
+const SCAN_INTERVAL_MAX = 3600;
+let _scanIntervalWarned = false;
+function getAutoCancelScanIntervalSeconds() {
+  const raw = getSetting('auto_cancel_scan_interval_seconds');
+  if (!Number.isFinite(raw) || raw <= 0) return DEFAULTS.auto_cancel_scan_interval_seconds;
+  if (raw < SCAN_INTERVAL_MIN || raw > SCAN_INTERVAL_MAX) {
+    if (!_scanIntervalWarned) {
+      console.warn(
+        `auto_cancel_scan_interval_seconds=${raw} out of range [${SCAN_INTERVAL_MIN}, ${SCAN_INTERVAL_MAX}], clamped`
+      );
+      _scanIntervalWarned = true;
+    }
+    return Math.min(SCAN_INTERVAL_MAX, Math.max(SCAN_INTERVAL_MIN, raw));
+  }
+  return raw;
 }
 
 /**
@@ -138,6 +175,9 @@ module.exports = {
   DEFAULTS,
   getSetting,
   getLevelSettings,
+  // auto-cancel-unpaid-orders
+  getAutoCancelSeconds,
+  getAutoCancelScanIntervalSeconds,
   computeLevel,
   computeDiscount,
   applyDiscount,

@@ -2,6 +2,15 @@
 const api = require('../../utils/api.js');
 const { formatDate, formatTime, statusLabel, statusClass } = require('../../utils/format.js');
 
+// auto-cancel-unpaid-orders: 把 cancelled_at (YYYY-MM-DD HH:MM:SS) 转成中文友好的展示
+function formatCancelledAt(iso) {
+  if (!iso) return '';
+  // 数据库存的是 'YYYY-MM-DD HH:MM:SS' (localtime), 直接拼 'YYYY-MM-DD HH:mm'
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  if (!m) return iso;
+  return `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}`;
+}
+
 Page({
   data: {
     order: null,
@@ -9,6 +18,8 @@ Page({
     statusLabel: '',
     dateText: '',
     timeText: '',
+    // auto-cancel-unpaid-orders: 横幅上展示的取消时间 (YYYY-MM-DD HH:mm)
+    cancelledAtText: '',
     paying: false                  // 防重复点"立即支付"
   },
 
@@ -41,7 +52,9 @@ Page({
         statusClass: statusClass(order.status),
         statusLabel: statusLabel(order.status),
         dateText: formatDate(order.created_at),
-        timeText: formatTime(order.created_at)
+        timeText: formatTime(order.created_at),
+        // auto-cancel-unpaid-orders: 同步取消时间 (横幅展示用)
+        cancelledAtText: formatCancelledAt(order.cancelled_at)
       });
     } catch (e) {
       wx.showToast({ title: e.message || '加载失败', icon: 'none' });
