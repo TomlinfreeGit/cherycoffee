@@ -102,7 +102,27 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL,
   updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
+-- 菜单顶部大图轮播 (Banner / Carousel)
+-- image_url    服务器 uploads 路径,如 '/uploads/xxx.jpg'
+-- title        可选展示标题,会叠在图片下方
+-- link_type    'category' | 'product' | 'none'
+-- link_value   当 link_type='category' 时为分类名;link_type='product' 时为商品 id
+-- sort_order   数字越小越靠前
+-- enabled      0 = 隐藏,1 = 显示 (商家可在后台上下架 banner)
+CREATE TABLE IF NOT EXISTS banners (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  image_url TEXT NOT NULL,
+  title TEXT,
+  link_type TEXT NOT NULL DEFAULT 'none',
+  link_value TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
 
+CREATE INDEX IF NOT EXISTS idx_banners_enabled ON banners(enabled);
+CREATE INDEX IF NOT EXISTS idx_banners_sort ON banners(sort_order);
 -- 菜单分类表
 -- 与 products.category 字段冗余存储：分类本身有自己的元数据（英文名、排序），
 -- 但 product.category 仍是字符串（保证兼容性）。

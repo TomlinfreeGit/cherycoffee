@@ -662,3 +662,108 @@ tr:hover td {
   color: #d84315;
   margin-left: 6px;
 }
+
+/* ─── Banners (carousel) page ─────────────────────────── */
+.banner-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.banner-row {
+  display: grid;
+  grid-template-columns: 200px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: opacity 0.15s, background 0.15s;
+}
+.banner-row:hover {
+  background: rgba(111, 78, 55, 0.02);
+}
+.banner-disabled {
+  opacity: 0.6;
+}
+
+.banner-thumb {
+  width: 200px;
+  height: 110px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.banner-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.banner-thumb-placeholder {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.banner-info {
+  min-width: 0;
+}
+.banner-title-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.banner-title-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.banner-meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.banner-url {
+  font-size: 11px;
+  color: #999;
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.banner-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+.reorder-group {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .banner-row {
+    grid-template-columns: 1fr;
+  }
+  .banner-thumb {
+    width: 100%;
+    height: 160px;
+  }
+  .banner-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}

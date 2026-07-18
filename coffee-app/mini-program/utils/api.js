@@ -148,6 +148,19 @@ module.exports = {
     return request('/categories', 'GET');
   },
 
+  // 菜单顶部大图轮播 (公开接口)。
+  // 返回启用的 banners (按 sort_order 升序),后端只返回 enabled=1 的行。
+  // 失败时 resolve([]) — 轮播是装饰性元素,加载失败不应该阻塞菜单展示。
+  async listBanners() {
+    try {
+      const res = await request('/banners', 'GET');
+      return res.data || [];
+    } catch (e) {
+      console.warn('listBanners failed:', e.message);
+      return [];
+    }
+  },
+
   // 订单（需要登录）
   // options: { customer_note?, customer_name?, customer_phone? }
   async createOrder(items, options = {}) {

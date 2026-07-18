@@ -12,6 +12,45 @@
     <text class="level-text">Lv.{{userLevel}} 会员专享价</text>
   </view>
 
+  <!--
+    顶部大图轮播。商家在后台「轮播图」页面可添加 / 排序 / 上下架。
+    - 仅当 banners.length >= 1 时才渲染 (0 张时本节点直接不渲染,节省高度)
+    - 高度与产品详情弹窗里的 .detail-image-wrap 一致 (480rpx),保持视觉一致
+    - indicator-dots 微信原生指示器,autoplay 3s
+    - 点击图片触发 onBannerTap: link_type=category 时切换到对应分类;product 暂留扩展
+  -->
+  <swiper
+    wx:if="{{banners.length > 0}}"
+    class="banner-swiper"
+    indicator-dots="{{banners.length > 1}}"
+    indicator-color="rgba(255,255,255,0.5)"
+    indicator-active-color="#ffffff"
+    autoplay="{{banners.length > 1}}"
+    interval="3000"
+    duration="450"
+    circular="{{banners.length > 1}}"
+    bindtap="onBannerTap"
+    bindchange="onBannerChange"
+  >
+    <swiper-item
+      wx:for="{{banners}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      data-link-type="{{item.link_type}}"
+      data-link-value="{{item.link_value}}"
+      data-index="{{index}}"
+    >
+      <image
+        class="banner-image"
+        src="{{item.imageUrl}}"
+        mode="aspectFill"
+        binderror="onBannerImageError"
+        data-id="{{item.id}}"
+      />
+      <view wx:if="{{item.title}}" class="banner-title">{{item.title}}</view>
+    </swiper-item>
+  </swiper>
+
   <view class="menu-body">
   <!-- 左侧分类栏 -->
   <scroll-view class="category-sidebar" scroll-y enhanced show-scrollbar="{{false}}">

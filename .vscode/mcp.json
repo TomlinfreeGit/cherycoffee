@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "codebase-memo": {
+      "type": "stdio",
+      "command": "D:\\CODEBASE\\codebase-memory-mcp.exe",
+      "args": []
+    }
+  }
+}

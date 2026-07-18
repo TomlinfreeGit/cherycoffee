@@ -1,15 +1,23 @@
 // filepath: coffee-app/server/src/routes/settings.js
 // System settings (level + discount config).
-//   GET  /api/settings                - public (returns a sanitized subset for clients)
-//   GET  /api/merchant/settings       - full settings (merchant)
-//   PATCH /api/merchant/settings      - merchant updates one or more settings
+//
+// IMPORTANT — 这个文件在 index.js 里被挂载在 /api,同时还挂着其他路由
+// (例如 /api/banners、/api/categories 等)。早期代码里用 `router.use(merchantAuth)`
+// 不带路径,会导致所有走到该路由器的请求都被拦截 (例如其他挂载点
+// fallthrough 进来的请求也会被拒)。所以这里拆成两个独立的 Express Router:
+//   - publicRouter    → 挂载在 /api  下,仅含 GET /settings (公开)
+//   - merchantRouter  → 挂载在 /api/merchant/settings 下,含 GET / PATCH /
+//     两个 router 互不干扰,merchantAuth 不会污染其他挂载点的请求。
+//
+// Endpoints:
+//   GET    /api/settings                - public
+//   GET    /api/merchant/settings       - merchant (full settings)
+//   PATCH  /api/merchant/settings       - merchant (update)
 
 const express = require('express');
 const { db } = require('../db');
 const { merchantAuth } = require('../middleware/merchantAuth');
 const { getLevelSettings, DEFAULTS } = require('../services/level');
-
-const router = express.Router();
 
 // Whitelist of editable settings (anything else is rejected)
 const EDITABLE_KEYS = new Set([
@@ -29,19 +37,24 @@ const RANGES = {
   order_auto_refresh_ms: { min: 5000, max: 600000, integer: true }
 };
 
+// ─── Public router (mounted at /api) ────────────────────────
+// 仅含 GET /settings (无任何中间件)。Express 不会把这个 router 的请求
+// fall-through 到其他挂载点,除非在这个 router 里都没有匹配的 handler。
+const publicRouter = express.Router();
+
 // GET /api/settings - public read of customer-relevant settings.
-// Mounted at /api in index.js, so this resolves to /api/settings.
-// IMPORTANT: must be declared BEFORE the merchantAuth middleware below
-// (otherwise the auth gate would also protect the public endpoint).
-router.get('/settings', (_req, res) => {
+publicRouter.get('/settings', (_req, res) => {
   res.json({ data: getLevelSettings() });
 });
 
-// All routes below require merchant auth
-router.use(merchantAuth);
+// ─── Merchant router (mounted at /api/merchant/settings) ──
+const merchantRouter = express.Router();
+
+// All merchant routes require auth
+merchantRouter.use(merchantAuth);
 
 // GET /api/merchant/settings - full settings
-router.get('/merchant/settings', (_req, res) => {
+merchantRouter.get('/', (_req, res) => {
   try {
     const rows = db.prepare('SELECT key, value, updated_at FROM settings').all();
     // Merge with defaults so clients always have a complete config
@@ -56,7 +69,7 @@ router.get('/merchant/settings', (_req, res) => {
 
 // PATCH /api/merchant/settings - update one or more settings
 // body: { level_orders_required?, level_discount_increment?, min_discount? }
-router.patch('/merchant/settings', (req, res) => {
+merchantRouter.patch('/', (req, res) => {
   try {
     const updates = req.body || {};
     const keys = Object.keys(updates);
@@ -113,4 +126,5 @@ router.patch('/merchant/settings', (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = publicRouter;
+module.exports.merchantRouter = merchantRouter;

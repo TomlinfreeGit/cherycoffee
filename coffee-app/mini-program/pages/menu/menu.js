@@ -16,11 +16,15 @@ Page({
     hasDiscount: false, // level>1 时为 true
     // 商品详情弹窗
     detailProduct: null,
-    detailVisible: false
+    detailVisible: false,
+    // 菜单顶部大图轮播
+    banners: [],
+    currentBannerIndex: 0
   },
 
   onLoad() {
     this.loadCategoriesAndProducts();
+    this.loadBanners();
     api.ensureLoggedIn()
       .then(() => app.loadUserLevel())
       .then(() => this.applyLevelToView())
@@ -62,7 +66,96 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.loadCategoriesAndProducts().then(() => wx.stopPullDownRefresh());
+    Promise.all([this.loadCategoriesAndProducts(), this.loadBanners()]).finally(() =>
+      wx.stopPullDownRefresh()
+    );
+  },
+
+  /**
+   * 加载菜单顶部轮播图。
+   * 失败时静默 (banner 是装饰元素,加载失败不应该阻塞菜单展示)。
+   * 注意:必须在 resolveImageUrl 后再 setData,这样 WXML 直接读 {{item.imageUrl}}。
+   */
+  async loadBanners() {
+    try {
+      const list = await api.listBanners();
+      const banners = (list || []).map((b) => ({
+        ...b,
+        imageUrl: api.resolveImageUrl(b.image_url)
+      }));
+      this.setData({ banners, currentBannerIndex: 0 });
+    } catch (e) {
+      console.warn('loadBanners failed:', e.message);
+      this.setData({ banners: [] });
+    }
+  },
+
+  /**
+   * 轮播图点击 → 按商家配置跳转:
+   *   link_type=category → 切换到对应分类
+   *   link_type=product  → 打开该商品详情弹窗 (复用详情 UI)
+   *   link_type=none     → 无动作 (e.g. 纯品牌宣传图)
+   */
+  onBannerTap(e) {
+    // 注意: bindtap 绑在 swiper 上时, e.target 是触发事件的子节点;
+    // 我们用 currentTarget.dataset 取当前 swiper-item 的 data-*。
+    const ds = (e.currentTarget.dataset || {});
+    const id = ds.id;
+    if (id == null) return;
+    const banner = this.data.banners.find((b) => b.id === id);
+    if (!banner) return;
+
+    const linkType = banner.link_type || 'none';
+    const linkValue = banner.link_value;
+
+    if (linkType === 'category' && linkValue) {
+      // 切换到对应分类,需要分类确实存在
+      const exists = this.data.categories.some((c) => c.name === linkValue);
+      if (!exists) {
+        wx.showToast({ title: '该分类已下架', icon: 'none' });
+        return;
+      }
+      this.setData({
+        activeCategory: linkValue,
+        activeCategoryEmpty: this._isEmptyForCategory(this.data.products, linkValue)
+      });
+      // 滚到顶部,避免右侧滚动区还停留在原分类位置
+      // (scroll-view 需要 scroll-into-view;此处省略,wx.pageScrollTo 在菜单页里也无主体滚动)
+    } else if (linkType === 'product' && linkValue) {
+      const pid = parseInt(linkValue, 10);
+      const product = this.data.products.find((p) => p.id === pid);
+      if (!product) {
+        wx.showToast({ title: '该商品已下架', icon: 'none' });
+        return;
+      }
+      if (!product.icon) product.icon = this.iconForCategory(product.category);
+      this.setData({
+        detailProduct: { ...product, options: {} },
+        detailVisible: true
+      });
+    }
+    // linkType === 'none': 不做任何事
+  },
+
+  /**
+   * 记录当前轮播 index (后续可扩展用于打点 / 动画)。
+   */
+  onBannerChange(e) {
+    const detail = e.detail || {};
+    if (typeof detail.current === 'number') {
+      this.setData({ currentBannerIndex: detail.current });
+    }
+  },
+
+  /**
+   * 轮播图加载失败 → 把这一张 imageUrl 置空,wx:if 在外层会跳过该 swiper-item 的 image 渲染。
+   * 这里直接把出错的 banner 从数据里移除,避免占位空白影响视觉。
+   */
+  onBannerImageError(e) {
+    const id = e.currentTarget.dataset.id;
+    if (id == null) return;
+    const banners = this.data.banners.filter((b) => b.id !== id);
+    this.setData({ banners });
   },
 
   async loadCategoriesAndProducts() {

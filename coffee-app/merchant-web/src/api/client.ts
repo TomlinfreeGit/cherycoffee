@@ -167,6 +167,23 @@ export interface Category {
   updated_at: string;
 }
 
+// Menu-top carousel banner.
+// - link_type: 'category' | 'product' | 'none'
+// - link_value: category.name (when link_type='category')
+//              product.id as string (when link_type='product')
+//              null (when link_type='none')
+export interface Banner {
+  id: number;
+  image_url: string;
+  title: string | null;
+  link_type: 'category' | 'product' | 'none';
+  link_value: string | null;
+  sort_order: number;
+  enabled: number; // 0 | 1
+  created_at: string;
+  updated_at: string;
+}
+
 export const api = {
   // Products
   listProducts: (params?: { category?: string; availableOnly?: boolean }) => {
@@ -249,5 +266,30 @@ export const api = {
   // Settings (level + discount config)
   getSettings: () => request<{ data: LevelSettings }>('GET', '/merchant/settings'),
   updateSettings: (data: Partial<LevelSettings>) =>
-    request<{ data: LevelSettings }>('PATCH', '/merchant/settings', data)
+    request<{ data: LevelSettings }>('PATCH', '/merchant/settings', data),
+
+  // Banners (menu-top carousel)
+  listBanners: () => request<{ data: Banner[] }>('GET', '/merchant/banners'),
+  createBanner: (data: {
+    image_url: string;
+    title?: string | null;
+    link_type?: Banner['link_type'];
+    link_value?: string | null;
+    enabled?: 0 | 1;
+  }) => request<{ data: Banner }>('POST', '/merchant/banners', data),
+  updateBanner: (
+    id: number,
+    data: Partial<{
+      image_url: string;
+      title: string | null;
+      link_type: Banner['link_type'];
+      link_value: string | null;
+      sort_order: number;
+      enabled: 0 | 1;
+    }>
+  ) => request<{ data: Banner }>('PATCH', `/merchant/banners/${id}`, data),
+  deleteBanner: (id: number) =>
+    request<{ data: { id: number; deleted: boolean } }>('DELETE', `/merchant/banners/${id}`),
+  reorderBanners: (ids: number[]) =>
+    request<{ data: Banner[] }>('POST', '/merchant/banners/reorder', { ids })
 };

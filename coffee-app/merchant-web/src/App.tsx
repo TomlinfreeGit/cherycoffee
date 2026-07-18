@@ -6,6 +6,7 @@ import ProductsPage from './pages/products/ProductsPage';
 import OrdersPage from './pages/orders/OrdersPage';
 import UsersPage from './pages/users/UsersPage';
 import CategoriesPage from './pages/categories/CategoriesPage';
+import BannersPage from './pages/banners/BannersPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import { auth, MerchantUser } from './api/auth';
 import { onUnauthorized } from './api/client';
@@ -43,6 +44,9 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
           </NavLink>
           <NavLink to="/categories" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
             菜单分类
+          </NavLink>
+          <NavLink to="/banners" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+            轮播图
           </NavLink>
           <NavLink to="/settings" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
             等级设置
@@ -117,6 +121,16 @@ function App() {
             <RequireAuth>
               <Layout onLogout={() => {}}>
                 <CategoriesPage />
+              </Layout>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/banners"
+          element={
+            <RequireAuth>
+              <Layout onLogout={() => {}}>
+                <BannersPage />
               </Layout>
             </RequireAuth>
           }

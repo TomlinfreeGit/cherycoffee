@@ -12,6 +12,9 @@ const uploadsRouter = require('./routes/uploads');
 const usersRouter = require('./routes/users');
 const categoriesRouter = require('./routes/categories');
 const settingsRouter = require('./routes/settings');
+const settingsMerchantRouter = settingsRouter.merchantRouter;
+const bannersRouter = require('./routes/banners');
+const bannersMerchantRouter = bannersRouter.merchantRouter;
 
 // 初始化商家鉴权子系统 (若 env 配置了 MERCHANT_ADMIN_USERNAME/PASSWORD 会自动种子账号;
 // 该副作用必须在加载 merchantAuth 中间件之前完成,否则 middleware 启动 WARN 会重复)
@@ -80,11 +83,16 @@ app.use('/api/orders', ordersRouter);
 app.use('/api/sessions', sessionsRouter);
 // merchantAuth 路由必须在 /api/merchant 之前挂 (否则会被业务路由的 middleware 拦截)
 app.use('/api/merchant-auth', merchantAuthRouter);
+// /api/merchant/banners 必须挂在 /api/merchant 之前,否则会被 merchantRouter 拦截 (虽然最终也会 fall-through,但
+// 这里放前面可以避免重复执行一次 merchantAuth)。
+app.use('/api/merchant/banners', bannersMerchantRouter);
 app.use('/api/merchant', merchantRouter);
 app.use('/api/uploads', uploadsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api', settingsRouter);
+app.use('/api/merchant/settings', settingsMerchantRouter);
+app.use('/api/banners', bannersRouter);
 
 // 404 handler
 app.use((req, res) => {
